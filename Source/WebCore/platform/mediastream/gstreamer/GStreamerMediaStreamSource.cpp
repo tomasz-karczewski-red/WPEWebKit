@@ -363,6 +363,8 @@ public:
         if (!m_parent || !m_isObserving)
             return;
 
+        updateFirstVideoSampleSeenFlag();
+
         auto videoFrameSize = videoFrame.presentationSize();
         IntSize captureSize(videoFrameSize.width(), videoFrameSize.height());
 
@@ -417,6 +419,9 @@ public:
         if (!m_parent || !m_isObserving)
             return;
 
+        if (receivedAudioSampleBeforeVideo())
+            return;
+
         const auto& data = static_cast<const GStreamerAudioData&>(audioData);
         if (m_track.enabled()) {
             GRefPtr<GstSample> sample = data.getSample();
@@ -452,6 +457,9 @@ public:
     }
 
     bool isEnded() const { return m_isEnded; }
+
+    void updateFirstVideoSampleSeenFlag();
+    bool receivedAudioSampleBeforeVideo();
 
 private:
     void flush()
@@ -550,6 +558,7 @@ struct _WebKitMediaStreamSrcPrivate {
     Atomic<bool> streamCollectionPosted;
     Atomic<unsigned> audioPadCounter;
     Atomic<unsigned> videoPadCounter;
+    bool firstVideoSampleSeen;
 };
 
 enum {
@@ -557,6 +566,25 @@ enum {
     PROP_IS_LIVE,
     PROP_LAST
 };
+
+void InternalSource::updateFirstVideoSampleSeenFlag()
+{
+    WebKitMediaStreamSrc *src = WEBKIT_MEDIA_STREAM_SRC_CAST(m_parent);
+    if (src->priv->firstVideoSampleSeen == FALSE)
+        src->priv->firstVideoSampleSeen = TRUE;
+}
+
+bool InternalSource::receivedAudioSampleBeforeVideo()
+{
+    WebKitMediaStreamSrc *src = WEBKIT_MEDIA_STREAM_SRC_CAST(m_parent);
+    if (src->priv->firstVideoSampleSeen == FALSE) {
+        for (auto& track : src->priv->tracks)
+            if (track->isVideo())
+                return true;
+    }
+
+    return false;
+}
 
 static void webkitMediaStreamSrcPostStreamCollection(WebKitMediaStreamSrc*);
 
@@ -666,6 +694,7 @@ static void webkitMediaStreamSrcConstructed(GObject* object)
 
     priv->mediaStreamObserver = makeUnique<WebKitMediaStreamObserver>(GST_ELEMENT_CAST(self));
     priv->flowCombiner = GUniquePtr<GstFlowCombiner>(gst_flow_combiner_new());
+    priv->firstVideoSampleSeen = FALSE;
 
     // https://bugs.webkit.org/show_bug.cgi?id=214150
     ASSERT(GST_OBJECT_REFCOUNT(self) == 1);
