@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Apple Inc.
+ * Copyright (C) 2022 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -22,39 +22,33 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include "config.h"
+#include "RTCIceCandidateFields.h"
 
-#if ENABLE(WEB_RTC)
+#if USE(LIBWEBRTC)
 
-#include "RTCIceGatheringState.h"
-#include "RTCIceTransportState.h"
-#include <wtf/WeakPtr.h>
+#include "LibWebRTCMacros.h"
+#include "LibWebRTCUtils.h"
+
+ALLOW_UNUSED_PARAMETERS_BEGIN
+ALLOW_DEPRECATED_DECLARATIONS_BEGIN
+
+#include <webrtc/pc/webrtc_sdp.h>
+
+ALLOW_DEPRECATED_DECLARATIONS_END
+ALLOW_UNUSED_PARAMETERS_END
 
 namespace WebCore {
 
-class RTCIceCandidate;
-
-class RTCIceTransportBackend {
-public:
-    virtual ~RTCIceTransportBackend() = default;
-    virtual const void* backend() const = 0;
-
-    class Client : public CanMakeWeakPtr<Client> {
-    public:
-        virtual ~Client() = default;
-        virtual void onStateChanged(RTCIceTransportState) = 0;
-        virtual void onGatheringStateChanged(RTCIceGatheringState) = 0;
-        virtual void onSelectedCandidatePairChanged(RefPtr<RTCIceCandidate>&&, RefPtr<RTCIceCandidate>&&) = 0;
-    };
-    virtual void registerClient(Client&) = 0;
-    virtual void unregisterClient() = 0;
-};
-
-inline bool operator==(const RTCIceTransportBackend& a, const RTCIceTransportBackend& b)
+std::optional<RTCIceCandidateFields> parseIceCandidateSDP(const String& sdp)
 {
-    return a.backend() == b.backend();
+    cricket::Candidate candidate;
+    if (!webrtc::ParseCandidate(sdp.utf8().data(), &candidate, nullptr, true))
+        return { };
+
+    return convertIceCandidate(candidate);
 }
 
 } // namespace WebCore
 
-#endif // ENABLE(WEB_RTC)
+#endif // USE(LIBWEBRTC)

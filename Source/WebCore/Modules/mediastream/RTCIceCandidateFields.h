@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Apple Inc.
+ * Copyright (C) 2022 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,37 +24,31 @@
 
 #pragma once
 
-#if ENABLE(WEB_RTC)
-
-#include "RTCIceGatheringState.h"
-#include "RTCIceTransportState.h"
-#include <wtf/WeakPtr.h>
+#include "RTCIceCandidateType.h"
+#include "RTCIceComponent.h"
+#include "RTCIceProtocol.h"
+#include "RTCIceTcpCandidateType.h"
+#include <optional>
+#include <wtf/text/WTFString.h>
 
 namespace WebCore {
 
-class RTCIceCandidate;
+struct RTCIceCandidateFields {
+    String foundation;
+    std::optional<RTCIceComponent> component;
+    std::optional<unsigned> priority;
+    String address;
+    std::optional<RTCIceProtocol> protocol;
+    std::optional<unsigned short> port;
+    std::optional<RTCIceCandidateType> type;
+    std::optional<RTCIceTcpCandidateType> tcpType;
+    String relatedAddress;
+    std::optional<unsigned short> relatedPort;
+    String usernameFragment;
 
-class RTCIceTransportBackend {
-public:
-    virtual ~RTCIceTransportBackend() = default;
-    virtual const void* backend() const = 0;
-
-    class Client : public CanMakeWeakPtr<Client> {
-    public:
-        virtual ~Client() = default;
-        virtual void onStateChanged(RTCIceTransportState) = 0;
-        virtual void onGatheringStateChanged(RTCIceGatheringState) = 0;
-        virtual void onSelectedCandidatePairChanged(RefPtr<RTCIceCandidate>&&, RefPtr<RTCIceCandidate>&&) = 0;
-    };
-    virtual void registerClient(Client&) = 0;
-    virtual void unregisterClient() = 0;
+    RTCIceCandidateFields isolatedCopy() && { return { WTFMove(foundation).isolatedCopy(), component, priority, WTFMove(address).isolatedCopy(), protocol, port, type, tcpType, WTFMove(relatedAddress).isolatedCopy(), relatedPort, WTFMove(usernameFragment).isolatedCopy() }; }
 };
 
-inline bool operator==(const RTCIceTransportBackend& a, const RTCIceTransportBackend& b)
-{
-    return a.backend() == b.backend();
-}
+std::optional<RTCIceCandidateFields> parseIceCandidateSDP(const String&);
 
 } // namespace WebCore
-
-#endif // ENABLE(WEB_RTC)
