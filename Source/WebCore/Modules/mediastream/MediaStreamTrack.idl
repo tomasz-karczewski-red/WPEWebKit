@@ -71,6 +71,7 @@ enum MediaStreamTrackState { "live", "ended" };
     // FIXME 169871: add channelCount
     DOMString deviceId;
     DOMString groupId;
+    DOMString displaySurface;
 };
 
 [
@@ -90,4 +91,5 @@ enum MediaStreamTrackState { "live", "ended" };
     // FIXME 169871: add channelCount
     DOMString deviceId;
     DOMString groupId;
+    DOMString displaySurface;
 };
