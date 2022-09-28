@@ -612,6 +612,8 @@ public:
     void updateMediaPlayer(IntSize, bool);
     WEBCORE_EXPORT bool elementIsHidden() const;
 
+    bool hasSource() const { return hasCurrentSrc() || srcObject(); }
+
 protected:
     HTMLMediaElement(const QualifiedName&, Document&, bool createdByParser);
     virtual ~HTMLMediaElement();
