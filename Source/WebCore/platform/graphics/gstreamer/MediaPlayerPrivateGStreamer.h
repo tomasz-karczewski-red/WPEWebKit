@@ -162,7 +162,7 @@ public:
     MediaPlayer::ReadyState readyState() const final;
     void setPageIsVisible(bool visible) final;
     void setPageIsSuspended(bool suspended) final;
-    void setSize(const IntSize&) final;
+    void setPresentationSize(const IntSize&) final;
     // Prefer MediaTime based methods over float based.
     float duration() const final { return durationMediaTime().toFloat(); }
     double durationDouble() const final { return durationMediaTime().toDouble(); }
