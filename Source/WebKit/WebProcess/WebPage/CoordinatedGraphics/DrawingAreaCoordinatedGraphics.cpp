@@ -870,4 +870,9 @@ void DrawingAreaCoordinatedGraphics::display(UpdateInfo& updateInfo)
     m_displayTimer.stop();
 }
 
+uint64_t DrawingAreaCoordinatedGraphics::nativeWindowID() const
+{
+    return m_layerTreeHost ? m_layerTreeHost->nativeWindowID() : 0;
+}
+
 } // namespace WebKit

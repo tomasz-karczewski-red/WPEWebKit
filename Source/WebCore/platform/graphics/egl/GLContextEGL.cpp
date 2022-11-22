@@ -124,6 +124,7 @@ bool GLContextEGL::getEGLConfig(EGLDisplay display, EGLConfig* config, EGLSurfac
     case GLContextEGL::WindowSurface:
     case GLContextEGL::Surfaceless:
         attributeList[13] = EGL_WINDOW_BIT;
+        attributeList[15] = 16;
         break;
     }
 

@@ -44,6 +44,11 @@ enum class GraphicsContextGLWebGLVersion {
 #endif
 };
 
+enum class GraphicsContextGLRenderTarget {
+    Offscreen,
+    HostWindow
+};
+
 #if PLATFORM(MAC) || PLATFORM(MACCATALYST)
 using PlatformGPUID = uint64_t;
 #endif
@@ -77,6 +82,10 @@ struct GraphicsContextGLAttributes {
 #if ENABLE(WEBXR)
     bool xrCompatible { false };
 #endif
+    using RenderTarget = GraphicsContextGLRenderTarget;
+    RenderTarget renderTarget { RenderTarget::Offscreen };
+    using NativeWindowID = uint64_t;
+    NativeWindowID nativeWindowID { 0 };
 
     PowerPreference effectivePowerPreference() const
     {

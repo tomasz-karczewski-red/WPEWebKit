@@ -130,14 +130,17 @@ GraphicsContextGLOpenGL::~GraphicsContextGLOpenGL()
     if (!makeContextCurrent())
         return;
 
+    auto attributes = contextAttributes();
+
+    if (attributes.renderTarget == GraphicsContextGLRenderTarget::HostWindow)
+        return;
+
     if (m_texture)
         ::glDeleteTextures(1, &m_texture);
 #if USE(COORDINATED_GRAPHICS)
     if (m_compositorTexture)
         ::glDeleteTextures(1, &m_compositorTexture);
 #endif
-
-    auto attributes = contextAttributes();
 
     if (attributes.antialias) {
         ::glDeleteRenderbuffers(1, &m_multisampleColorBuffer);
@@ -181,6 +184,30 @@ bool GraphicsContextGLOpenGL::initialize()
 
     validateAttributes();
     auto attributes = contextAttributes(); // They may have changed during validation.
+
+    if (attributes.renderTarget == GraphicsContextGLRenderTarget::HostWindow) {
+        m_compiler = ANGLEWebKitBridge(SH_ESSL_OUTPUT, SH_WEBGL_SPEC);
+
+        ShBuiltInResources ANGLEResources;
+        sh::InitBuiltInResources(&ANGLEResources);
+        ANGLEResources.MaxVertexAttribs = getInteger(GraphicsContextGLOpenGL::MAX_VERTEX_ATTRIBS);
+        ANGLEResources.MaxVertexUniformVectors = getInteger(GraphicsContextGLOpenGL::MAX_VERTEX_UNIFORM_VECTORS);
+        ANGLEResources.MaxVaryingVectors = getInteger(GraphicsContextGLOpenGL::MAX_VARYING_VECTORS);
+        ANGLEResources.MaxVertexTextureImageUnits = getInteger(GraphicsContextGLOpenGL::MAX_VERTEX_TEXTURE_IMAGE_UNITS);
+        ANGLEResources.MaxCombinedTextureImageUnits = getInteger(GraphicsContextGLOpenGL::MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+        ANGLEResources.MaxTextureImageUnits = getInteger(GraphicsContextGLOpenGL::MAX_TEXTURE_IMAGE_UNITS);
+        ANGLEResources.MaxFragmentUniformVectors = getInteger(GraphicsContextGLOpenGL::MAX_FRAGMENT_UNIFORM_VECTORS);
+        ANGLEResources.MaxDrawBuffers = 1;
+        GCGLint range[2] { };
+        GCGLint precision = 0;
+        getShaderPrecisionFormat(GraphicsContextGLOpenGL::FRAGMENT_SHADER, GraphicsContextGLOpenGL::HIGH_FLOAT, range, &precision);
+        ANGLEResources.FragmentPrecisionHigh = (range[0] || range[1] || precision);
+        m_compiler.setResources(ANGLEResources);
+
+        ::glClearColor(0, 0, 0, 0);
+
+        return platformInitialize();
+    }
 
     // Create a texture to render into.
     ::glGenTextures(1, &m_texture);
@@ -462,7 +489,7 @@ void GraphicsContextGLOpenGL::reshape(int width, int height)
     TemporaryOpenGLSetting scopedScissor(GL_SCISSOR_TEST, GL_FALSE);
     TemporaryOpenGLSetting scopedDither(GL_DITHER, GL_FALSE);
     
-    bool mustRestoreFBO = reshapeFBOs(IntSize(width, height));
+    bool mustRestoreFBO = contextAttributes().renderTarget == GraphicsContextGLRenderTarget::HostWindow ? false : reshapeFBOs(IntSize(width, height));
 
     // Initialize renderbuffers to 0.
     GLfloat clearColor[] = { 0, 0, 0, 0 }, clearDepth = 0;

@@ -154,6 +154,8 @@ public:
 
     void removeMessageReceiverIfNeeded();
 
+    virtual uint64_t nativeWindowID() const = 0;
+
 protected:
     DrawingArea(DrawingAreaType, DrawingAreaIdentifier, WebPage&);
 

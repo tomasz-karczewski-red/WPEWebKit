@@ -43,16 +43,41 @@ namespace Nicosia {
 
 using namespace WebCore;
 
+static std::unique_ptr<GLContext> s_windowContext;
+
+static void terminateWindowContext()
+{
+    s_windowContext = nullptr;
+}
+
 std::unique_ptr<GCGLLayer> GCGLLayer::create(WebCore::GraphicsContextGLOpenGL& context)
 {
-    if (auto glContext = GLContext::createOffscreenContext(&PlatformDisplay::sharedDisplayForCompositing()))
-        return makeUnique<GCGLLayer>(context, WTFMove(glContext));
+    auto attributes = context.contextAttributes();
+
+    if (attributes.renderTarget == GraphicsContextGLRenderTarget::Offscreen) {
+        if (auto glContext = GLContext::createOffscreenContext(&PlatformDisplay::sharedDisplayForCompositing()))
+            return makeUnique<GCGLLayer>(context, WTFMove(glContext));
+    } else {
+        if (!s_windowContext) {
+            s_windowContext = GLContext::createContextForWindow(reinterpret_cast<GLNativeWindowType>(attributes.nativeWindowID), &PlatformDisplay::sharedDisplayForCompositing());
+            std::atexit(terminateWindowContext);
+        }
+        if (s_windowContext)
+            return makeUnique<GCGLLayer>(context);
+    }
+
     return nullptr;
 }
 
 GCGLLayer::GCGLLayer(GraphicsContextGLOpenGL& context, std::unique_ptr<WebCore::GLContext>&& glContext)
     : m_context(context)
     , m_glContext(WTFMove(glContext))
+    , m_contentLayer(Nicosia::ContentLayer::create(Nicosia::ContentLayerTextureMapperImpl::createFactory(*this)))
+{
+}
+
+GCGLLayer::GCGLLayer(GraphicsContextGLOpenGL& context)
+    : m_context(context)
     , m_contentLayer(Nicosia::ContentLayer::create(Nicosia::ContentLayerTextureMapperImpl::createFactory(*this)))
 {
 }
@@ -64,18 +89,34 @@ GCGLLayer::~GCGLLayer()
 
 bool GCGLLayer::makeContextCurrent()
 {
+    if (m_context.contextAttributes().renderTarget == GraphicsContextGLRenderTarget::HostWindow) {
+        ASSERT(s_windowContext);
+        return s_windowContext->makeContextCurrent();
+    }
+
     ASSERT(m_glContext);
     return m_glContext->makeContextCurrent();
 }
 
 GCGLContext GCGLLayer::platformContext() const
 {
+    if (m_context.contextAttributes().renderTarget == GraphicsContextGLRenderTarget::HostWindow) {
+        ASSERT(s_windowContext);
+        return s_windowContext->platformContext();
+    }
+
     ASSERT(m_glContext);
     return m_glContext->platformContext();
 }
 
 void GCGLLayer::swapBuffersIfNeeded()
 {
+    if (m_context.contextAttributes().renderTarget == GraphicsContextGLRenderTarget::HostWindow) {
+        ASSERT(s_windowContext);
+        s_windowContext->swapBuffers();
+        return;
+    }
+
 #if USE(COORDINATED_GRAPHICS)
     if (m_context.layerComposited())
         return;

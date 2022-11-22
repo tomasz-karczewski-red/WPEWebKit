@@ -894,6 +894,11 @@ std::unique_ptr<WebGLRenderingContextBase> WebGLRenderingContextBase::create(Can
             attributes.devicePixelRatio = page->deviceScaleFactor();
 
         hostWindow = document.view()->root()->hostWindow();
+
+        if (frame->settings().nonCompositedWebGLEnabled()) {
+            attributes.renderTarget = GraphicsContextGLRenderTarget::HostWindow;
+            attributes.nativeWindowID = hostWindow->nativeWindowID();
+        }
     }
 
     attributes.noExtensions = true;

@@ -205,6 +205,7 @@ public:
     void registerPopupOpeningObserver(PopupOpeningObserver&);
     void unregisterPopupOpeningObserver(PopupOpeningObserver&);
 
+    uint64_t nativeWindowID() const final;
 private:
     void notifyPopupOpeningObservers() const;
 

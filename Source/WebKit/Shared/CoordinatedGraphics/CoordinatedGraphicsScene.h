@@ -65,6 +65,7 @@ public:
     virtual ~CoordinatedGraphicsScene();
 
     void applyStateChanges(const Vector<WebCore::CoordinatedGraphicsState>&);
+    void applyStateChangesAndNotifyVideoPosition(const Vector<WebCore::CoordinatedGraphicsState>&);
     void paintToCurrentGLContext(const WebCore::TransformationMatrix&, const WebCore::FloatRect&, WebCore::TextureMapper::PaintFlags = 0);
     void updateSceneState();
     void detach();

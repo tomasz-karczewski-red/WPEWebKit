@@ -1588,6 +1588,19 @@ NeedsStorageAccessFromFileURLsQuirk:
     WebCore:
       default: true
 
+NonCompositedWebGLEnabled:
+  type: bool
+  humanReadableName: "NonCompositedWebGL mode"
+  humanReadableDescription: "Enable rendering WebGL content without composition"
+  condition: PLATFORM(WPE)
+  defaultValue:
+    WebKitLegacy:
+      default: false
+    WebKit:
+      default: false
+    WebCore:
+      default: false
+
 NotificationsEnabled:
   type: bool
   condition: ENABLE(NOTIFICATIONS)

@@ -60,6 +60,27 @@ void CoordinatedGraphicsScene::applyStateChanges(const Vector<CoordinatedGraphic
         commitSceneState(state.nicosia);
 }
 
+void CoordinatedGraphicsScene::applyStateChangesAndNotifyVideoPosition(const Vector<CoordinatedGraphicsState>& states)
+{
+    ensureRootLayer();
+
+    for (auto& state : states)
+        m_nicosia.scene = state.nicosia.scene;
+
+    updateSceneState();
+
+    TextureMapperLayer* currentRootLayer = rootLayer();
+    if (!currentRootLayer)
+        return;
+
+    bool sceneHasRunningAnimations = currentRootLayer->applyAnimationsRecursively(MonotonicTime::now());
+
+    currentRootLayer->computeTransformsAndNotifyVideoPosition();
+
+    if (sceneHasRunningAnimations)
+        updateViewport();
+}
+
 void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatrix& matrix, const FloatRect& clipRect, TextureMapper::PaintFlags PaintFlags)
 {
     updateSceneState();

@@ -619,4 +619,9 @@ void Chrome::notifyPopupOpeningObservers() const
         observer->willOpenPopup();
 }
 
+uint64_t Chrome::nativeWindowID() const
+{
+    return m_client.nativeWindowID();
+}
+
 } // namespace WebCore

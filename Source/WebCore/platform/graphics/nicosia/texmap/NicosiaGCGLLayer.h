@@ -46,6 +46,7 @@ public:
     static std::unique_ptr<GCGLLayer> create(WebCore::GraphicsContextGLOpenGL&);
 
     GCGLLayer(WebCore::GraphicsContextGLOpenGL&, std::unique_ptr<WebCore::GLContext>&&);
+    GCGLLayer(WebCore::GraphicsContextGLOpenGL&);
     virtual ~GCGLLayer();
 
     ContentLayer& contentLayer() const { return m_contentLayer; }

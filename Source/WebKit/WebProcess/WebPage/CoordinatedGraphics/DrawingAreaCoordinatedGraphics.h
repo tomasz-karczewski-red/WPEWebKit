@@ -107,6 +107,8 @@ private:
     void display();
     void display(UpdateInfo&);
 
+    uint64_t nativeWindowID() const final;
+
     uint64_t m_backingStoreStateID { 0 };
 
     // Whether painting is enabled. If painting is disabled, any calls to setNeedsDisplay and scroll are ignored.

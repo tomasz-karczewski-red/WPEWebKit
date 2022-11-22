@@ -635,6 +635,8 @@ public:
 
     virtual void decidePolicyForModalContainer(OptionSet<ModalContainerControlType>, CompletionHandler<void(ModalContainerDecision)>&&) = 0;
 
+    virtual uint64_t nativeWindowID() const { return 0; }
+
 protected:
     WEBCORE_EXPORT ChromeClient();
     WEBCORE_EXPORT virtual ~ChromeClient();

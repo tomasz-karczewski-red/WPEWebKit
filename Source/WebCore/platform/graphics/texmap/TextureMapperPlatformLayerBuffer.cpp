@@ -29,6 +29,7 @@
 #if USE(COORDINATED_GRAPHICS)
 
 #include "FloatRect.h"
+#include "GLContext.h"
 #include "NotImplemented.h"
 
 namespace WebCore {
@@ -71,6 +72,13 @@ std::unique_ptr<TextureMapperPlatformLayerBuffer> TextureMapperPlatformLayerBuff
         return nullptr;
     }
 
+    // If there's no current GLContext in the compositor thread (nonCompositedWebGL mode), we can't perform any
+    // OpenGL operation, which means no cloning. This is used to free the GStreamer buffers and keep the last frame
+    // visible, but this is not necessary when nonCompositedWebGL is enabled (the video is painted as texture
+    // or using hole punch), so returning nullptr is fine.
+    if (!GLContext::current())
+        return nullptr;
+
     return WTF::switchOn(m_variant,
         [&](const RGBTexture& texture) mutable -> std::unique_ptr<TextureMapperPlatformLayerBuffer> {
             if (!texture.id) {
@@ -111,8 +119,7 @@ void TextureMapperPlatformLayerBuffer::paintToTextureMapper(TextureMapper& textu
 
     if (m_extraFlags & TextureMapperGL::ShouldNotBlend) {
         ASSERT(!m_texture);
-        if (m_holePunchClient)
-            m_holePunchClient->setVideoRectangle(enclosingIntRect(modelViewMatrix.mapRect(targetRect)));
+        notifyPositionToHolePunchClient(targetRect, modelViewMatrix);
         texmapGL.drawSolidColor(targetRect, modelViewMatrix, Color::transparentBlack, false);
         return;
     }
@@ -156,6 +163,12 @@ void TextureMapperPlatformLayerBuffer::paintToTextureMapper(TextureMapper& textu
             ASSERT(texture.id);
             texmapGL.drawTextureExternalOES(texture.id, m_extraFlags, targetRect, modelViewMatrix, opacity);
         });
+}
+
+void TextureMapperPlatformLayerBuffer::notifyPositionToHolePunchClient(const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix)
+{
+    if (m_holePunchClient)
+        m_holePunchClient->setVideoRectangle(enclosingIntRect(modelViewMatrix.mapRect(targetRect)));
 }
 
 } // namespace WebCore

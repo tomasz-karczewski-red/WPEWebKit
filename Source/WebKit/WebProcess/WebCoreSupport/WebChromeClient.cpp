@@ -1564,4 +1564,9 @@ const AtomString& WebChromeClient::searchStringForModalContainerObserver() const
 }
 #endif
 
+uint64_t WebChromeClient::nativeWindowID() const
+{
+    return m_page.drawingArea()->nativeWindowID();
+}
+
 } // namespace WebKit

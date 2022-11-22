@@ -86,6 +86,8 @@ public:
     virtual FloatSize screenSize() const = 0;
     virtual FloatSize availableScreenSize() const = 0;
     virtual FloatSize overrideScreenSize() const = 0;
+
+    virtual uint64_t nativeWindowID() const = 0;
 };
 
 } // namespace WebCore
