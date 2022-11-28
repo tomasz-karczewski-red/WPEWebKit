@@ -313,6 +313,8 @@ bool SecurityOrigin::isSameOriginDomain(const SecurityOrigin& other) const
     if (canAccess && isLocal())
         canAccess = passesFileCheck(other);
 
+    canAccess |= SecurityPolicy::isAccessAllowed(*this, other, other.toURL());
+
     return canAccess;
 }
 
