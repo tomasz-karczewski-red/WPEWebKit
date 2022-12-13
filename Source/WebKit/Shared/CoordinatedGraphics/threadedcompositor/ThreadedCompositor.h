@@ -79,6 +79,7 @@ public:
     void targetRefreshRateDidChange(unsigned);
 
     void suspend();
+    void suspendToTransparent();
     void resume();
 
 private:
@@ -116,6 +117,13 @@ private:
     } m_attributes;
 
     Ref<ThreadedDisplayRefreshMonitor> m_displayRefreshMonitor;
+
+    enum class SuspendToTransparentState {
+        None,
+        Requested,
+        WaitingForFrameComplete
+    };
+    SuspendToTransparentState m_suspendToTransparentState { SuspendToTransparentState::None };
 };
 
 } // namespace WebKit

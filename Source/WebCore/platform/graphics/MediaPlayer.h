@@ -366,6 +366,7 @@ public:
     void cancelLoad();
 
     void setPageIsVisible(bool);
+    void setPageIsSuspended(bool);
     void setVisibleForCanvas(bool);
     bool isVisibleForCanvas() const { return m_visibleForCanvas; }
 

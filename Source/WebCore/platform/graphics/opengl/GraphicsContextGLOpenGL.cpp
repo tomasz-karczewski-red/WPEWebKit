@@ -337,6 +337,11 @@ void GraphicsContextGLOpenGL::checkGPUStatus()
 {
 }
 
+PlatformLayer* GraphicsContextGLOpenGL::platformLayer() const
+{
+    return &m_nicosiaLayer->contentLayer();
+}
+
 bool GraphicsContextGLOpenGL::isGLES2Compliant() const
 {
 #if USE(OPENGL_ES)

@@ -1065,6 +1065,8 @@ public:
 
     void setClient(Client* client) { m_client = client; }
 
+    virtual PlatformLayer* platformLayer() const = 0;
+
     // ========== WebGL 1 entry points.
     virtual void activeTexture(GCGLenum texture) = 0;
     virtual void attachShader(PlatformGLObject program, PlatformGLObject shader) = 0;

@@ -136,6 +136,8 @@ private:
     // won't paint until painting has resumed again.
     bool m_isPaintingSuspended { false };
 
+    bool m_isViewSuspended { false };
+
     RunLoop::Timer<DrawingAreaCoordinatedGraphics> m_exitCompositingTimer;
 
     // The layer tree host that handles accelerated compositing.

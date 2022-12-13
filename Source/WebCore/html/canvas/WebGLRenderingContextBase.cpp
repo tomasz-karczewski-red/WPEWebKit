@@ -66,6 +66,8 @@
 #include "KHRParallelShaderCompile.h"
 #include "Logging.h"
 #include "NavigatorWebXR.h"
+#include "NicosiaPlatformLayer.h"
+#include "NicosiaContentLayerTextureMapperImpl.h"
 #include "NotImplemented.h"
 #include "OESDrawBuffersIndexed.h"
 #include "OESElementIndexUint.h"
@@ -1203,13 +1205,14 @@ void WebGLRenderingContextBase::restoreUnpackParameters()
 
 void WebGLRenderingContextBase::addActivityStateChangeObserverIfNecessary()
 {
-    // We are only interested in visibility changes for contexts
-    // that are using the high-performance GPU.
-    if (!isHighPerformanceContext(m_context))
-        return;
-
     auto* canvas = htmlCanvas();
     if (!canvas)
+        return;
+
+    // We are only interested in visibility changes for contexts
+    // that are using the high-performance GPU.
+    m_nonCompositedWebGLEnabled = canvas->document().frame()->settings().nonCompositedWebGLEnabled();
+    if (!isHighPerformanceContext(m_context) && !m_nonCompositedWebGLEnabled)
         return;
 
     auto* page = canvas->document().page();
@@ -8362,6 +8365,19 @@ void WebGLRenderingContextBase::activityStateDidChange(OptionSet<ActivityState::
     auto changed = oldActivityState ^ newActivityState;
     if (changed & ActivityState::IsVisible)
         m_context->setContextVisibility(newActivityState.contains(ActivityState::IsVisible));
+
+    if (m_nonCompositedWebGLEnabled) {
+        if (((changed & ActivityState::IsInWindow) && !(newActivityState & ActivityState::IsInWindow)) ||
+            ((changed & ActivityState::IsVisible) && !(newActivityState & ActivityState::IsVisible))) {
+            if (m_scissorEnabled)
+                m_context->disable(GraphicsContextGL::SCISSOR_TEST);
+            m_context->clearColor(0, 0, 0, 0);
+            m_context->clear(GraphicsContextGL::COLOR_BUFFER_BIT);
+            downcast<Nicosia::ContentLayerTextureMapperImpl>(downcast<Nicosia::ContentLayer>(m_context->platformLayer())->impl()).swapBuffersIfNeeded();
+            if (m_scissorEnabled)
+                m_context->enable(GraphicsContextGL::SCISSOR_TEST);
+        }
+    }
 }
 
 void WebGLRenderingContextBase::didComposite()
