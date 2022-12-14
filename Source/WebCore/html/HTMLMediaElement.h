@@ -667,6 +667,7 @@ private:
     void didFinishInsertingNode() override;
     void removedFromAncestor(RemovalType, ContainerNode&) override;
     void didRecalcStyle(Style::Change) override;
+    bool canStartSelection() const override { return false; } 
     bool isInteractiveContent() const override;
 
     void setFullscreenMode(VideoFullscreenMode);
