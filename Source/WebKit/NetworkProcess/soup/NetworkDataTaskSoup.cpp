@@ -230,7 +230,6 @@ void NetworkDataTaskSoup::createRequest(ResourceRequest&& request, WasBlockingCo
     g_signal_connect(m_soupMessage.get(), "wrote-body-data", G_CALLBACK(wroteBodyDataCallback), this);
 #if USE(SOUP2)
     g_signal_connect(static_cast<NetworkSessionSoup&>(*m_session).soupSession(), "authenticate",  G_CALLBACK(authenticateCallback), this);
-    g_signal_connect(m_soupMessage.get(), "network-event", G_CALLBACK(networkEventCallback), this);
 #else
     g_signal_connect(m_soupMessage.get(), "authenticate", G_CALLBACK(authenticateCallback), this);
     g_signal_connect(m_soupMessage.get(), "accept-certificate", G_CALLBACK(acceptCertificateCallback), this);
@@ -242,6 +241,7 @@ void NetworkDataTaskSoup::createRequest(ResourceRequest&& request, WasBlockingCo
     g_signal_connect(m_soupMessage.get(), "request-certificate", G_CALLBACK(requestCertificateCallback), this);
     g_signal_connect(m_soupMessage.get(), "request-certificate-password", G_CALLBACK(requestCertificatePasswordCallback), this);
 #endif
+    g_signal_connect(m_soupMessage.get(), "network-event", G_CALLBACK(networkEventCallback), this);
     g_signal_connect(m_soupMessage.get(), "restarted", G_CALLBACK(restartedCallback), this);
     g_signal_connect(m_soupMessage.get(), "starting", G_CALLBACK(startingCallback), this);
     if (m_shouldContentSniff == ContentSniffingPolicy::SniffContent)
@@ -1520,7 +1520,6 @@ void NetworkDataTaskSoup::didFail(const ResourceError& error)
     dispatchDidCompleteWithError(error);
 }
 
-#if USE(SOUP2)
 void NetworkDataTaskSoup::networkEventCallback(SoupMessage* soupMessage, GSocketClientEvent event, GIOStream* stream, NetworkDataTaskSoup* task)
 {
     if (task->state() == State::Canceling || task->state() == State::Completed || !task->m_client)
@@ -1532,8 +1531,11 @@ void NetworkDataTaskSoup::networkEventCallback(SoupMessage* soupMessage, GSocket
 
 void NetworkDataTaskSoup::networkEvent(GSocketClientEvent event, GIOStream* stream)
 {
+#if USE(SOUP2)
     auto time = MonotonicTime::now();
+#endif
     switch (event) {
+#if USE(SOUP2)
     case G_SOCKET_CLIENT_RESOLVING:
         m_networkLoadMetrics.domainLookupStart = time;
         break;
@@ -1543,17 +1545,28 @@ void NetworkDataTaskSoup::networkEvent(GSocketClientEvent event, GIOStream* stre
     case G_SOCKET_CLIENT_CONNECTING:
         m_networkLoadMetrics.connectStart = time;
         break;
-    case G_SOCKET_CLIENT_CONNECTED:
-        if (shouldCaptureExtraNetworkLoadMetrics() && G_IS_SOCKET_CONNECTION(stream)) {
-            GRefPtr<GSocketAddress> address = adoptGRef(g_socket_connection_get_remote_address(G_SOCKET_CONNECTION(stream), nullptr));
-            if (G_IS_INET_SOCKET_ADDRESS(address.get())) {
-                GUniquePtr<char> ipAddress(g_inet_address_to_string(g_inet_socket_address_get_address(G_INET_SOCKET_ADDRESS(address.get()))));
-                additionalNetworkLoadMetricsForWebInspector().remoteAddress = makeString(ipAddress.get(), ':', g_inet_socket_address_get_port(G_INET_SOCKET_ADDRESS(address.get())));
+#endif
+    case G_SOCKET_CLIENT_CONNECTED: {
+#if USE(SOUP2)
+            if (shouldCaptureExtraNetworkLoadMetrics() && G_IS_SOCKET_CONNECTION(stream)) {
+                GRefPtr<GSocketAddress> address = adoptGRef(g_socket_connection_get_remote_address(G_SOCKET_CONNECTION(stream), nullptr));
+                if (G_IS_INET_SOCKET_ADDRESS(address.get())) {
+                    GUniquePtr<char> ipAddress(g_inet_address_to_string(g_inet_socket_address_get_address(G_INET_SOCKET_ADDRESS(address.get()))));
+                    additionalNetworkLoadMetricsForWebInspector().remoteAddress = makeString(ipAddress.get(), ':', g_inet_socket_address_get_port(G_INET_SOCKET_ADDRESS(address.get())));
+                }
             }
+#endif
+            const char* enableTCPkeepalive = getenv("WEBKIT_TCP_KEEPALIVE");
+            if (enableTCPkeepalive && enableTCPkeepalive[0] != '0') {
+                RELEASE_ASSERT(G_IS_SOCKET_CONNECTION(stream));
+                if (GSocket* socket = g_socket_connection_get_socket(G_SOCKET_CONNECTION(stream)))
+                    g_socket_set_keepalive(socket, TRUE);
+            }
+            // Web Timing considers that connection time involves dns, proxy & TLS negotiation...
+            // so we better pick G_SOCKET_CLIENT_COMPLETE for connectEnd.
         }
-        // Web Timing considers that connection time involves dns, proxy & TLS negotiation...
-        // so we better pick G_SOCKET_CLIENT_COMPLETE for connectEnd.
         break;
+#if USE(SOUP2)
     case G_SOCKET_CLIENT_PROXY_NEGOTIATING:
         break;
     case G_SOCKET_CLIENT_PROXY_NEGOTIATED:
@@ -1569,12 +1582,12 @@ void NetworkDataTaskSoup::networkEvent(GSocketClientEvent event, GIOStream* stre
     case G_SOCKET_CLIENT_COMPLETE:
         m_networkLoadMetrics.connectEnd = time;
         break;
+#endif
     default:
         ASSERT_NOT_REACHED();
         break;
     }
 }
-#endif
 
 void NetworkDataTaskSoup::startingCallback(SoupMessage* soupMessage, NetworkDataTaskSoup* task)
 {
