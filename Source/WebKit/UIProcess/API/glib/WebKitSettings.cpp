@@ -173,6 +173,7 @@ enum {
     PROP_MEDIA_CONTENT_TYPES_REQUIRING_HARDWARE_SUPPORT,
     PROP_ENABLE_WEBRTC,
     PROP_ENABLE_NON_COMPOSITED_WEBGL,
+    PROP_DISABLE_WEB_SECURITY,
     N_PROPERTIES,
 };
 
@@ -406,6 +407,9 @@ ALLOW_DEPRECATED_DECLARATIONS_END
     case PROP_ENABLE_NON_COMPOSITED_WEBGL:
         webkit_settings_set_enable_non_composited_webgl(settings, g_value_get_boolean(value));
         break;
+    case PROP_DISABLE_WEB_SECURITY:
+        webkit_settings_set_disable_web_security(settings, g_value_get_boolean(value));
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, propId, paramSpec);
         break;
@@ -609,6 +613,9 @@ ALLOW_DEPRECATED_DECLARATIONS_END
         break;
     case PROP_ENABLE_NON_COMPOSITED_WEBGL:
         g_value_set_boolean(value, webkit_settings_get_enable_non_composited_webgl(settings));
+        break;
+    case PROP_DISABLE_WEB_SECURITY:
+        g_value_set_boolean(value, webkit_settings_get_disable_web_security(settings));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, propId, paramSpec);
@@ -1605,6 +1612,25 @@ static void webkit_settings_class_init(WebKitSettingsClass* klass)
         "enable-non-composited-webgl",
         _("Enable non composited WebGL"),
         _("Whether non composited WebGL should be enabled"),
+        FALSE,
+        readWriteConstructParamFlags);
+
+    /**
+     * WebKitSettings:disable-web-security:
+     *
+     * Enable or disable support for Web Security on pages.
+     *
+     * This setting disables the same-origin policy, allowing every website full control over
+     * all other websites. This is for use in special environments where you wish to disable
+     * all security and allow websites to hack each other. It is impossible to use this setting
+     * securely.
+     *
+     * Since: 2.40
+     */
+    sObjProperties[PROP_DISABLE_WEB_SECURITY] = g_param_spec_boolean(
+        "disable-web-security",
+        _("Disable web security"),
+        _("Whether web security should be disabled."),
         FALSE,
         readWriteConstructParamFlags);
 
@@ -4012,4 +4038,40 @@ void webkit_settings_set_enable_non_composited_webgl(WebKitSettings* settings, g
 
     priv->preferences->setNonCompositedWebGLEnabled(enabled);
     g_object_notify(G_OBJECT(settings), "enable-non-composited-webgl");
+}
+
+
+/**
+ * webkit_settings_get_disable_web_security:
+ * @settings: a #WebKitSettings
+ *
+ * Get the #WebKitSettings:disable-web-security property.
+ *
+ * Returns: %TRUE If web security support is disabled or %FALSE otherwise.
+*/
+gboolean webkit_settings_get_disable_web_security(WebKitSettings* settings)
+{
+    g_return_val_if_fail(WEBKIT_IS_SETTINGS(settings), FALSE);
+
+    return !settings->priv->preferences->webSecurityEnabled();
+}
+
+/**
+ * webkit_settings_set_disable_web_security:
+ * @settings: a #WebKitSettings
+ * @disabled: Value to be set
+ *
+ * Set the #WebKitSettings:disable-web-security property.
+ */
+void webkit_settings_set_disable_web_security(WebKitSettings* settings, gboolean disabled)
+{
+    g_return_if_fail(WEBKIT_IS_SETTINGS(settings));
+
+    WebKitSettingsPrivate* priv = settings->priv;
+    bool currentValue = !priv->preferences->webSecurityEnabled();
+    if (currentValue == disabled)
+        return;
+
+    priv->preferences->setWebSecurityEnabled(!disabled);
+    g_object_notify_by_pspec(G_OBJECT(settings), sObjProperties[PROP_DISABLE_WEB_SECURITY]);
 }
