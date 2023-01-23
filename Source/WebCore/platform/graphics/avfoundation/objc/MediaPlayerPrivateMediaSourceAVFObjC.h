@@ -164,6 +164,7 @@ public:
 #endif
 
     enum SeekState {
+        WaitingToSeek,
         Seeking,
         WaitingForAvailableFame,
         SeekCompleted,
@@ -350,7 +351,7 @@ private:
     FloatSize m_naturalSize;
     double m_rate;
     bool m_playing;
-    bool m_seeking;
+    bool m_synchronizerSeeking;
     SeekState m_seekCompleted { SeekCompleted };
     mutable bool m_loadingProgressed;
 #if !HAVE(AVSAMPLEBUFFERDISPLAYLAYER_COPYDISPLAYEDPIXELBUFFER)
