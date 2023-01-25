@@ -8052,6 +8052,21 @@ void WebPageProxy::didChangeProcessIsResponsive()
     m_pageLoadState.didChangeProcessIsResponsive();
 }
 
+void WebPageProxy::isWebProcessResponsive(CompletionHandler<void (bool)>&& callback)
+{
+    if (m_isClosed) {
+        if (callback) {
+            RunLoop::main().dispatch([callback = WTFMove(callback)]() mutable {
+                bool isWebProcessResponsive = true;
+                callback(isWebProcessResponsive);
+            });
+        }
+        return;
+    }
+
+    process().isResponsive(WTFMove(callback));
+}
+
 String WebPageProxy::currentURL() const
 {
     String url = m_pageLoadState.activeURL();
