@@ -493,6 +493,13 @@ WEBKIT_API void
 webkit_settings_set_disable_web_security                       (WebKitSettings *settings,
                                                                 gboolean        disabled);
 
+WEBKIT_API gboolean
+webkit_settings_get_allow_scripts_to_close_windows              (WebKitSettings *settings);
+
+WEBKIT_API void
+webkit_settings_set_allow_scripts_to_close_windows              (WebKitSettings *settings,
+                                                                 gboolean        allowed);
+
 G_END_DECLS
 
 #endif /* WebKitSettings_h */

@@ -141,6 +141,19 @@ AllowRunningOfInsecureContent:
     WebCore:
       default: false
 
+AllowScriptsToCloseWindows:
+  type: bool
+  humanReadableName: "Allow scripts to close windows"
+  humanReadableDescription: "Allow scripts to close windows"
+  condition: PLATFORM(WPE)
+  defaultValue:
+    WebKitLegacy:
+      default: false
+    WebKit:
+      default: false
+    WebCore:
+      default: false
+
 AllowSettingAnyXHRHeaderFromFileURLs:
   type: bool
   defaultValue:
