@@ -344,6 +344,9 @@ PlatformVideoColorSpace videoColorSpaceFromCaps(const GstCaps*);
 PlatformVideoColorSpace videoColorSpaceFromInfo(const GstVideoInfo&);
 void fillVideoInfoColorimetryFromColorSpace(GstVideoInfo*, const PlatformVideoColorSpace&);
 
+bool gstObjectHasProperty(GstElement*, const char* name);
+bool gstObjectHasProperty(GstPad*, const char* name);
+
 } // namespace WebCore
 
 #ifndef GST_BUFFER_DTS_OR_PTS

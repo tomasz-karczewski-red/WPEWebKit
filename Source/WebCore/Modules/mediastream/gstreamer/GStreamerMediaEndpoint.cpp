@@ -614,8 +614,7 @@ GRefPtr<GstPad> GStreamerMediaEndpoint::requestPad(unsigned mlineIndex, const GR
         sinkPad = adoptGRef(gst_element_request_pad(m_webrtcBin.get(), padTemplate, padId.utf8().data(), caps.get()));
     }
 
-    GST_DEBUG_OBJECT(m_pipeline.get(), "Setting msid to %s on sink pad", mediaStreamID.ascii().data());
-    if (g_object_class_find_property(G_OBJECT_GET_CLASS(sinkPad.get()), "msid"))
+    if (gstObjectHasProperty(sinkPad.get(), "msid"))
         g_object_set(sinkPad.get(), "msid", mediaStreamID.ascii().data(), nullptr);
 
     GRefPtr<GstWebRTCRTPTransceiver> transceiver;
@@ -780,7 +779,7 @@ void GStreamerMediaEndpoint::addRemoteStream(GstPad* pad)
     const auto* media = gst_sdp_message_get_media(description->sdp, mLineIndex);
     String mediaStreamId;
 
-    if (g_object_class_find_property(G_OBJECT_GET_CLASS(pad), "msid")) {
+    if (gstObjectHasProperty(pad, "msid")) {
         GUniqueOutPtr<char> msid;
         g_object_get(pad, "msid", &msid.outPtr(), nullptr);
         if (msid)
