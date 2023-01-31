@@ -142,18 +142,16 @@ bool GStreamerMediaEndpoint::initializePipeline()
         });
     }), this);
 
-    if (webkitGstCheckVersion(1, 21, 0)) {
-        g_signal_connect_swapped(m_webrtcBin.get(), "prepare-data-channel", G_CALLBACK(+[](GStreamerMediaEndpoint* endPoint, GstWebRTCDataChannel* channel, gboolean isLocal) {
-            endPoint->prepareDataChannel(channel, isLocal);
-        }), this);
+    g_signal_connect_swapped(m_webrtcBin.get(), "prepare-data-channel", G_CALLBACK(+[](GStreamerMediaEndpoint* endPoint, GstWebRTCDataChannel* channel, gboolean isLocal) {
+        endPoint->prepareDataChannel(channel, isLocal);
+    }), this);
 
-        g_signal_connect_swapped(m_webrtcBin.get(), "request-aux-sender", G_CALLBACK(+[](GStreamerMediaEndpoint* endPoint, GstWebRTCDTLSTransport*) -> GstElement* {
-            // `sender` ownership is transferred to the signal caller.
-            if (auto sender = endPoint->requestAuxiliarySender())
-                return sender;
-            return nullptr;
-        }), this);
-    }
+    g_signal_connect_swapped(m_webrtcBin.get(), "request-aux-sender", G_CALLBACK(+[](GStreamerMediaEndpoint* endPoint, GstWebRTCDTLSTransport*) -> GstElement* {
+        // `sender` ownership is transferred to the signal caller.
+        if (auto sender = endPoint->requestAuxiliarySender())
+            return sender;
+        return nullptr;
+    }), this);
 
     g_signal_connect_swapped(m_webrtcBin.get(), "on-data-channel", G_CALLBACK(+[](GStreamerMediaEndpoint* endPoint, GstWebRTCDataChannel* channel) {
         endPoint->onDataChannel(channel);
@@ -1040,9 +1038,6 @@ void GStreamerMediaEndpoint::prepareDataChannel(GstWebRTCDataChannel* dataChanne
 
 UniqueRef<GStreamerDataChannelHandler> GStreamerMediaEndpoint::findOrCreateIncomingChannelHandler(GRefPtr<GstWebRTCDataChannel>&& dataChannel)
 {
-    if (!webkitGstCheckVersion(1, 21, 0))
-        return makeUniqueRef<GStreamerDataChannelHandler>(WTFMove(dataChannel));
-
     auto identifier = makeObjectIdentifier<GstWebRTCDataChannel>(reinterpret_cast<uintptr_t>(dataChannel.get()));
     auto channelHandler = m_incomingDataChannels.take(identifier);
     RELEASE_ASSERT(channelHandler);

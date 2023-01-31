@@ -67,6 +67,7 @@ static std::once_flag appSinkWorkaroundOnceFlag;
 
 void registerAppsinkWorkaroundIfNeeded()
 {
+#if 0
     std::call_once(appSinkWorkaroundOnceFlag, [] {
         GST_DEBUG_CATEGORY_INIT(webkit_app_sink_workaround_debug, "webkitappsink", 0, "WebKit AppSink Workarounds");
         bool needsWorkaround = checkNeedsAppsinkWorkaround();
@@ -76,6 +77,7 @@ void registerAppsinkWorkaroundIfNeeded()
 
         gst_element_register(nullptr, "appsink", GST_RANK_PRIMARY + 100, WEBKIT_TYPE_APP_SINK_WITH_WORKAROUND);
     });
+#endif
 }
 
 } // namespace WebCore
