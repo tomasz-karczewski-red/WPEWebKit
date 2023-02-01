@@ -548,7 +548,7 @@ bool canUseWebAssemblyFastMemory();
     v(Bool, useAtomicsWaitAsync, true, Normal, "Expose the waitAsync() methods on Atomics.") \
     v(Bool, useImportAssertion, false, Normal, "Enable import assertion.") \
     v(Bool, useIntlEnumeration, true, Normal, "Expose the Intl enumeration APIs.") \
-    v(Bool, useSharedArrayBuffer, false, Normal, nullptr) \
+    v(Bool, useSharedArrayBuffer, true, Normal, nullptr) \
     v(Bool, useShadowRealm, false, Normal, "Expose the ShadowRealm object.") \
     v(Bool, useTemporal, false, Normal, "Expose the Temporal object.") \
     v(Bool, useWebAssemblyThreading, true, Normal, "Allow instructions from the wasm threading spec.") \
