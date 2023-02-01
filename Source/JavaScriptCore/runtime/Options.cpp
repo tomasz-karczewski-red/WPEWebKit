@@ -465,7 +465,6 @@ static void overrideDefaults()
 
 #if !ENABLE(WEBASSEMBLY_SIGNALING_MEMORY)
     Options::useWebAssemblyFastMemory() = false;
-    Options::useSharedArrayBuffer() = false;
 #endif
 
 #if !HAVE(MACH_EXCEPTIONS)
