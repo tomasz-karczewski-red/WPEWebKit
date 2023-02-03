@@ -72,6 +72,8 @@ private:
     Expected<HashMap<String, String>, StorageError> getAllItemsFromDatabase();
     void initializeCache(const HashMap<String, String>&);
 
+    bool handleDatabaseCorruptionIfNeeded(int databaseError);
+
     String m_path;
     Ref<WorkQueue> m_queue;
     std::unique_ptr<WebCore::SQLiteDatabase> m_database;
