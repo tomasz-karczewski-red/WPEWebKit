@@ -127,6 +127,13 @@ void WebCookieManager::setCookies(PAL::SessionID sessionID, const Vector<Cookie>
     completionHandler();
 }
 
+void WebCookieManager::setCookieJar(PAL::SessionID sessionID, const Vector<WebCore::Cookie>& cookies, CompletionHandler<void()>&& completionHandler)
+{
+    if (auto* storageSession = m_process.storageSession(sessionID))
+        storageSession->setCookieJar(cookies);
+    completionHandler();
+}
+
 void WebCookieManager::notifyCookiesDidChange(PAL::SessionID sessionID)
 {
     ASSERT(RunLoop::isMain());

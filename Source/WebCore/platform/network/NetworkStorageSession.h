@@ -160,6 +160,7 @@ public:
     WEBCORE_EXPORT void setCookie(const Cookie&);
     WEBCORE_EXPORT void setCookies(const Vector<Cookie>&, const URL&, const URL& mainDocumentURL);
     WEBCORE_EXPORT void setCookiesFromDOM(const URL& firstParty, const SameSiteInfo&, const URL&, std::optional<FrameIdentifier>, std::optional<PageIdentifier>, ShouldAskITP, const String&, ShouldRelaxThirdPartyCookieBlocking) const;
+    WEBCORE_EXPORT void setCookieJar(const Vector<Cookie>&);
     WEBCORE_EXPORT void deleteCookie(const Cookie&, CompletionHandler<void()>&&);
     WEBCORE_EXPORT void deleteCookie(const URL&, const String&, CompletionHandler<void()>&&) const;
     WEBCORE_EXPORT void deleteAllCookies(CompletionHandler<void()>&&);

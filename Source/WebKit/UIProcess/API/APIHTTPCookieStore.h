@@ -69,6 +69,9 @@ public:
     void getHTTPCookieAcceptPolicy(CompletionHandler<void(const WebCore::HTTPCookieAcceptPolicy&)>&&);
     void flushCookies(CompletionHandler<void()>&&);
 
+    void setCookieJar(Vector<WebCore::Cookie>&&, CompletionHandler<void()>&&);
+    void getCookieJar(CompletionHandler<void(const Vector<WebCore::Cookie>&)>&&);
+
     class Observer : public CanMakeWeakPtr<Observer> {
     public:
         virtual ~Observer() { }

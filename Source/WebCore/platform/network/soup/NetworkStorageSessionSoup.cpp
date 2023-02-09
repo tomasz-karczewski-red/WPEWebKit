@@ -410,6 +410,31 @@ void NetworkStorageSession::setCookie(const Cookie& cookie)
     soup_cookie_jar_add_cookie(cookieStorage(), cookie.toSoupCookie());
 }
 
+void NetworkStorageSession::setCookieJar(const Vector<Cookie>& cookies)
+{
+    SoupCookieJar* jar = cookieStorage();
+
+    // Delete existent cookies and add the new ones. During the process, disable
+    // signals from the cookie jar so we don't get a ton of them.
+    guint signal_id = g_signal_lookup("changed", soup_cookie_jar_get_type());
+    GArray* blocked_handler_id_array = g_array_new(FALSE, FALSE, sizeof(gulong));
+    gulong handler_id;
+    while ((handler_id = g_signal_handler_find(jar, (GSignalMatchType)(G_SIGNAL_MATCH_ID | G_SIGNAL_MATCH_UNBLOCKED), signal_id, 0, NULL, NULL, NULL))) {
+        g_array_append_val(blocked_handler_id_array, handler_id);
+        g_signal_handler_block(jar, handler_id);
+    }
+    deleteAllCookies(nullptr);
+    for (const auto& cookie : cookies)
+        soup_cookie_jar_add_cookie(jar, cookie.toSoupCookie());
+
+    for (guint i = 0; i < blocked_handler_id_array->len; ++i)
+    {
+        handler_id = g_array_index(blocked_handler_id_array, gulong, i);
+        g_signal_handler_unblock(jar, handler_id);
+    }
+    g_array_unref(blocked_handler_id_array);
+}
+
 void NetworkStorageSession::deleteCookie(const Cookie& cookie, CompletionHandler<void()>&& completionHandler)
 {
     GUniquePtr<SoupCookie> targetCookie(cookie.toSoupCookie());

@@ -84,6 +84,8 @@ private:
     void platformSetHTTPCookieAcceptPolicy(WebCore::HTTPCookieAcceptPolicy, CompletionHandler<void()>&&);
     void getHTTPCookieAcceptPolicy(PAL::SessionID, CompletionHandler<void(WebCore::HTTPCookieAcceptPolicy)>&&);
 
+    void setCookieJar(PAL::SessionID, const Vector<WebCore::Cookie>&, CompletionHandler<void()>&&);
+
     void startObservingCookieChanges(PAL::SessionID);
     void stopObservingCookieChanges(PAL::SessionID);
 

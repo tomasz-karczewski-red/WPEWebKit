@@ -154,6 +154,22 @@ void HTTPCookieStore::flushCookies(CompletionHandler<void()>&& completionHandler
         completionHandler();
 }
 
+void HTTPCookieStore::setCookieJar(Vector<WebCore::Cookie>&& cookies, CompletionHandler<void()>&& completionHandler)
+{
+    if (auto* networkProcess = networkProcessIfExists()) {
+        networkProcess->sendWithAsyncReply(Messages::WebCookieManager::SetCookieJar(m_sessionID, cookies), WTFMove(completionHandler));
+    } else
+        completionHandler();
+}
+
+void HTTPCookieStore::getCookieJar(CompletionHandler<void(const Vector<WebCore::Cookie>&)>&& completionHandler)
+{
+    if (auto* networkProcess = networkProcessIfExists()) {
+        networkProcess->sendWithAsyncReply(Messages::WebCookieManager::GetAllCookies(m_sessionID), WTFMove(completionHandler));
+    } else
+        completionHandler({ });
+}
+
 void HTTPCookieStore::registerObserver(Observer& observer)
 {
     bool wasObserving = !m_observers.computesEmpty();
