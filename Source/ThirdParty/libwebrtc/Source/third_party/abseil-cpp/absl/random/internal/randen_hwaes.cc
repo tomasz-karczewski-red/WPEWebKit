@@ -46,17 +46,17 @@
 #endif
 #elif defined(ABSL_ARCH_ARM) || defined(ABSL_ARCH_AARCH64)
 // ARM is somewhat more complicated. We might support crypto natively...
-#if ABSL_HAVE_ACCELERATED_AES || \
-    (defined(__ARM_NEON) && defined(__ARM_FEATURE_CRYPTO))
-#define ABSL_RANDEN_HWAES_IMPL 1
+// #if ABSL_HAVE_ACCELERATED_AES || \
+//     (defined(__ARM_NEON) && defined(__ARM_FEATURE_CRYPTO))
+// #define ABSL_RANDEN_HWAES_IMPL 1
 
-#elif ABSL_RANDOM_INTERNAL_AES_DISPATCH && !defined(__APPLE__) && \
-    (defined(__GNUC__) && __GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ > 9)
-// ...or, on GCC, we can use an ASM directive to
-// instruct the assember to allow crypto instructions.
-#define ABSL_RANDEN_HWAES_IMPL 1
-#define ABSL_RANDEN_HWAES_IMPL_CRYPTO_DIRECTIVE 1
-#endif
+// #elif ABSL_RANDOM_INTERNAL_AES_DISPATCH && !defined(__APPLE__) && \
+//     (defined(__GNUC__) && __GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ > 9)
+// // ...or, on GCC, we can use an ASM directive to
+// // instruct the assember to allow crypto instructions.
+// #define ABSL_RANDEN_HWAES_IMPL 1
+// #define ABSL_RANDEN_HWAES_IMPL_CRYPTO_DIRECTIVE 1
+// #endif
 #else
 // HWAES is unsupported by these architectures / platforms:
 //   __myriad2__
