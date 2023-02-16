@@ -2141,6 +2141,23 @@ webanimations/accelerated-animations-and-composite.html [ Skip ]
 # OT-SVG is not implemented on GTK/WPE
 fast/text/otsvg-canvas.html [ ImageOnlyFailure ]
 
+# resignFirstResponder is not implemented on GLIB
+fast/shadow-dom/focus-ring-on-shadow-host.html [ Skip ]
+fast/shadow-dom/focus-ring-on-shadow-host-focuswithin.html [ Skip ]
+fast/shadow-dom/focus-ring-on-shadow-host-sibling.html [ Skip ]
+
+# HLS media playback support is disabled in the GStreamer ports.
+http/tests/media/clearkey/clear-key-hls-aes128.html [ Skip ]
+http/tests/media/hls/ [ Skip ]
+http/tests/media/track-in-band-hls-metadata-crash.html [ Skip ]
+http/tests/media/track-in-band-hls-metadata.html [ Skip ]
+http/tests/media/video-hls-copy-into-canvas.html [ Skip ]
+http/tests/security/canvas-remote-read-remote-video-hls.html [ Skip ]
+http/tests/media/modern-media-controls/status-support/status-support-live-broadcast.html [ Skip ]
+http/tests/media/modern-media-controls/time-control/1-to-10-hours.html [ Skip ]
+http/tests/media/modern-media-controls/time-control/10-hours-or-more.html [ Skip ]
+http/tests/media/modern-media-controls/time-control/less-than-10-minutes.html [ Skip ]
+
 #////////////////////////////////////////////////////////////////////////////////////////
 # End of UNSUPPORTED tests.
 #////////////////////////////////////////////////////////////////////////////////////////
