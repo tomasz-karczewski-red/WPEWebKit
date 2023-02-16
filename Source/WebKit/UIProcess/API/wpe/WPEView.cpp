@@ -230,6 +230,7 @@ View::View(struct wpe_view_backend* backend, const API::PageConfiguration& baseC
         // handle_touch_event
         [](void* data, struct wpe_input_touch_event* event)
         {
+#if ENABLE(TOUCH_EVENTS)
             auto& view = *reinterpret_cast<View*>(data);
             auto& page = view.page();
 
@@ -267,6 +268,7 @@ View::View(struct wpe_view_backend* backend, const API::PageConfiguration& baseC
             }
 
             page.handleTouchEvent(touchEvent);
+#endif
         },
         // padding
         nullptr,
