@@ -1836,9 +1836,8 @@ void MediaPlayerPrivateGStreamer::handleMessage(GstMessage* message)
     case GST_MESSAGE_STATE_CHANGED: {
         GstState newState;
         gst_message_parse_state_changed(message, &currentState, &newState, nullptr);
-        GST_DEBUG_OBJECT(pipeline(), "Changed state from %s to %s", gst_element_state_get_name(currentState), gst_element_state_get_name(newState));
 
-#if USE(GSTREAMER_HOLEPUNCH)
+#if USE(GSTREAMER_HOLEPUNCH) && USE(WPEWEBKIT_PLATFORM_BCM_NEXUS)
         if (currentState == GST_STATE_NULL && newState == GST_STATE_READY) {
             // If we didn't create a video sink, store a reference to the created one.
             if (!m_videoSink) {
@@ -1854,17 +1853,15 @@ void MediaPlayerPrivateGStreamer::handleMessage(GstMessage* message)
                         // Ensure that there's a buffer with the transparent rectangle available when playback is going to start.
                         pushNextHolePunchBuffer();
                     }
-                 }
+                }
             }
         }
 #endif
+
         if (!messageSourceIsPlaybin || m_isDelayingLoad)
             break;
 
-        // Construct a filename for the graphviz dot file output.
-        CString dotFileName = makeString(GST_OBJECT_NAME(pipeline()), '.',
-            gst_element_state_get_name(currentState), '_', gst_element_state_get_name(newState)).utf8();
-        GST_DEBUG_BIN_TO_DOT_FILE_WITH_TS(GST_BIN(pipeline()), GST_DEBUG_GRAPH_SHOW_ALL, dotFileName.data());
+        GST_DEBUG_OBJECT(pipeline(), "Changed state from %s to %s", gst_element_state_get_name(currentState), gst_element_state_get_name(newState));
 
         if (!m_isLegacyPlaybin && currentState == GST_STATE_PAUSED && newState == GST_STATE_PLAYING)
             playbin3SendSelectStreamsIfAppropriate();
@@ -3985,8 +3982,7 @@ GstElement* MediaPlayerPrivateGStreamer::createHolePunchVideoSink()
 
 #if USE(WESTEROS_SINK)
     // Westeros using holepunch.
-    GRefPtr<GstElementFactory> westerosfactory = adoptGRef(gst_element_factory_find("westerossink"));
-    GstElement* videoSink = gst_element_factory_create(westerosfactory.get(), "WesterosVideoSink");
+    GstElement* videoSink = makeGStreamerElement("westerossink", "WesterosVideoSink");
     g_object_set(G_OBJECT(videoSink), "zorder", 0.0f, nullptr);
     return videoSink;
 #endif
@@ -3996,7 +3992,7 @@ GstElement* MediaPlayerPrivateGStreamer::createHolePunchVideoSink()
     return nullptr;
 #endif
 
-    return gst_element_factory_make("fakevideosink", nullptr);
+    return makeGStreamerElement("fakevideosink", nullptr);
 }
 
 void MediaPlayerPrivateGStreamer::pushNextHolePunchBuffer()
