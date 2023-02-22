@@ -108,7 +108,7 @@ void TextureMapperPlatformLayerProxyGL::invalidate()
         // To avoid this, don't remove the current buffer on invalidation if it's a holepunch buffer. It will be
         // released when the proxy gets destroyed instead. Holepunch buffers don't really hold any GL asset, so
         // we're not in a hurry to free them anyway.
-        if (!m_currentBuffer->isHolePunchBuffer())
+        if (m_currentBuffer && !m_currentBuffer->isHolePunchBuffer())
             m_currentBuffer = nullptr;
         m_pendingBuffer = nullptr;
         m_releaseUnusedBuffersTimer = nullptr;
