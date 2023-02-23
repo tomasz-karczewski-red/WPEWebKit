@@ -521,7 +521,7 @@ private:
     void configureDepayloader(GstElement*);
     void configureVideoDecoder(GstElement*);
     void configureElement(GstElement*);
-#if PLATFORM(BROADCOM) || USE(WESTEROS_SINK)
+#if PLATFORM(BROADCOM) || USE(WESTEROS_SINK) || PLATFORM(AMLOGIC)
     void configureElementPlatformQuirks(GstElement*);
 #endif
 
