@@ -747,4 +747,11 @@ bool CachedImage::isVisibleInViewport(const Document& document) const
     return false;
 }
 
+bool CachedImage::mayTryReplaceEncodedData() const {
+    if (hasImage() && is<BitmapImage>(m_image.get())) {
+        return !downcast<BitmapImage>(m_image.get())->canUseAsyncDecodingForLargeImages();
+    }
+    return true;
+}
+
 } // namespace WebCore
