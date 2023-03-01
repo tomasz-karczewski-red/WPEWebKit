@@ -42,6 +42,7 @@
 #include <wtf/Threading.h>
 #include <wtf/text/CString.h>
 #include <wtf/text/StringConcatenateNumbers.h>
+#include <wtf/text/StringToIntegerConversion.h>
 
 namespace WebCore {
 
@@ -171,7 +172,17 @@ static int walAutomaticTruncationHook(void* context, sqlite3* db, const char* db
 {
     UNUSED_PARAM(context);
 
-    static constexpr int checkpointThreshold = 1000; // matches SQLITE_DEFAULT_WAL_AUTOCHECKPOINT
+    // prevent -wal file from growing indefinitely w automatic checkpointing:
+    // set threshold for number of pages after which checkpoint should be run
+    static constexpr int checkpointThresholdDefault = 1000; // matches SQLITE_DEFAULT_WAL_AUTOCHECKPOINT
+    static int checkpointThreshold = 0;
+
+    // control threshold w/ to checkpoint more frequently if desired
+    if (!checkpointThreshold) {
+        auto envValue = String::fromLatin1(getenv("WPE_WAL_AUTOCHECKPOINT"));
+        checkpointThreshold = parseInteger<int>(envValue).value_or(checkpointThresholdDefault);
+        checkpointThreshold = checkpointThreshold < 0 ? checkpointThresholdDefault : checkpointThreshold;
+    }
 
     if (walPageCount >= checkpointThreshold) {
         int newWalPageCount = 0;
