@@ -396,6 +396,7 @@ public:
     void setEmulatedConditions(std::optional<int64_t>&& bytesPerSecondLimit);
 #endif
 
+    unsigned localStorageQuota() const { return m_resolvedConfiguration->localStorageQuota(); }
 private:
     enum class ForceReinitialization : bool { No, Yes };
 #if ENABLE(APP_BOUND_DOMAINS)

@@ -393,6 +393,10 @@ public:
     void setEmulatedConditions(PAL::SessionID, std::optional<int64_t>&& bytesPerSecondLimit);
 #endif
 
+#if USE(SOUP)
+    static unsigned localStorageQuota() { return s_localStorageQuota; }
+#endif
+
 private:
     void platformInitializeNetworkProcess(const NetworkProcessCreationParameters&);
 
@@ -543,6 +547,10 @@ private:
     bool m_ftpEnabled { false };
     bool m_isSuspended { false };
     bool m_didSyncCookiesForClose { false };
+
+#if USE(SOUP)
+    static unsigned s_localStorageQuota;
+#endif
 };
 
 #if !PLATFORM(COCOA)
