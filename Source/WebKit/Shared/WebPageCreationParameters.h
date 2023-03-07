@@ -270,6 +270,9 @@ struct WebPageCreationParameters {
     bool hasResizableWindows { false };
 
     WebCore::ContentSecurityPolicyModeForExtension contentSecurityPolicyModeForExtension { WebCore::ContentSecurityPolicyModeForExtension::None };
+
+    uint32_t localStorageQuota;
+
 };
 
 } // namespace WebKit

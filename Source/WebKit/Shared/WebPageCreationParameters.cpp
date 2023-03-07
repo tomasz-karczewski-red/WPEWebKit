@@ -196,6 +196,8 @@ void WebPageCreationParameters::encode(IPC::Encoder& encoder) const
 #endif
 
     encoder << contentSecurityPolicyModeForExtension;
+
+    encoder << localStorageQuota;
 }
 
 std::optional<WebPageCreationParameters> WebPageCreationParameters::decode(IPC::Decoder& decoder)
@@ -618,6 +620,9 @@ std::optional<WebPageCreationParameters> WebPageCreationParameters::decode(IPC::
 #endif
 
     if (!decoder.decode(parameters.contentSecurityPolicyModeForExtension))
+        return std::nullopt;
+
+    if (!decoder.decode(parameters.localStorageQuota))
         return std::nullopt;
 
     return parameters;

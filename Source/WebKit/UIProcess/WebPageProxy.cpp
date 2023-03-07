@@ -8698,6 +8698,8 @@ WebPageCreationParameters WebPageProxy::creationParameters(WebProcessProxy& proc
     parameters.hasResizableWindows = pageClient().hasResizableWindows();
 #endif
 
+    parameters.localStorageQuota = m_websiteDataStore->localStorageQuota();
+
     return parameters;
 }
 

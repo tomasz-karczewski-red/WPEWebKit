@@ -319,6 +319,12 @@ LocalStorageDatabasePath:
     WebCore:
       default: '{ }'
 
+LocalStorageQuota:
+  type: uint32_t
+  defaultValue:
+    WebCore:
+      default: 5242880
+
 MaximumAccelerated2dCanvasSize:
   type: uint32_t
   defaultValue:

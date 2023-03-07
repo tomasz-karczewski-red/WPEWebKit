@@ -58,6 +58,7 @@ void NetworkProcessCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << cookieAcceptPolicy;
     encoder << languages;
     encoder << memoryPressureHandlerConfiguration;
+    encoder << localStorageQuota;
 #endif
 
     encoder << urlSchemesRegisteredAsSecure;
@@ -104,6 +105,9 @@ bool NetworkProcessCreationParameters::decode(IPC::Decoder& decoder, NetworkProc
     if (!memoryPressureHandlerConfiguration)
         return false;
     result.memoryPressureHandlerConfiguration = WTFMove(*memoryPressureHandlerConfiguration);
+
+    if (!decoder.decode(result.localStorageQuota))
+        return false;
 #endif
 
     if (!decoder.decode(result.urlSchemesRegisteredAsSecure))

@@ -946,6 +946,8 @@ WebPage::WebPage(PageIdentifier pageID, WebPageCreationParameters&& parameters)
         ProcessCapabilities::setCanUseAcceleratedBuffers(false);
     }
 
+    m_page->settings().setLocalStorageQuota(parameters.localStorageQuota);
+
     updateThrottleState();
 }
 
