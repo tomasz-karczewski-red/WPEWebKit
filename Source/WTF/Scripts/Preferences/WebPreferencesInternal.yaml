@@ -688,7 +688,7 @@ OffscreenCanvasEnabled:
       default: false
     WebKit:
       "ENABLE(EXPERIMENTAL_FEATURES)": true
-      default: false
+      default: true
 
 OffscreenCanvasInWorkersEnabled:
   type: bool
@@ -701,7 +701,7 @@ OffscreenCanvasInWorkersEnabled:
       default: false
     WebKit:
       "ENABLE(EXPERIMENTAL_FEATURES)": true
-      default: false
+      default: true
 
 PdfJSViewerEnabled:
   type: bool
