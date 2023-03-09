@@ -862,6 +862,10 @@ void CoordinatedGraphicsLayer::flushCompositingStateForThisLayerOnly()
 
     // Determine the backing store presence. Content is painted later, in the updateContentBuffers() traversal.
     if (shouldHaveBackingStore()) {
+        // The layer has a backingStore. Check whether we need to apply a concrete scale factor to it
+        // because of some animation or transformation. If we don't do this, the backingStore will always
+        // have a factor of 1, which will produce blurry results when the layer is scaled up.
+        updateAnimationOrTransformScaleFactor();
         if (!m_nicosia.backingStore) {
             m_nicosia.backingStore = Nicosia::BackingStore::create(Nicosia::BackingStoreTextureMapperImpl::createFactory());
             m_nicosia.delta.backingStoreChanged = true;
@@ -1085,7 +1089,7 @@ void CoordinatedGraphicsLayer::deviceOrPageScaleFactorChanged()
 
 float CoordinatedGraphicsLayer::effectiveContentsScale()
 {
-    return selfOrAncestorHaveNonAffineTransforms() ? 1 : deviceScaleFactor() * pageScaleFactor();
+    return selfOrAncestorHaveNonAffineTransforms() ? 1 : deviceScaleFactor() * pageScaleFactor() * m_animationOrTransformScaleFactor;
 }
 
 IntRect CoordinatedGraphicsLayer::transformedVisibleRect()
@@ -1456,6 +1460,12 @@ bool CoordinatedGraphicsLayer::addAnimation(const KeyframeValueList& valueList, 
     m_animations.add(Nicosia::Animation(keyframesName, valueList, boxSize, *anim, m_lastAnimationStartTime, 0_s, Nicosia::Animation::AnimationState::Playing));
     m_animationStartedTimer.startOneShot(0_s);
     didChangeAnimations();
+
+    // If the animation is of type AnimatedPropertyTransform, it may be a scale animation. Check whether
+    // we need to update the scale factor due to a new scale animation being added.
+    if (valueList.property() == AnimatedPropertyTransform)
+        updateAnimationScaleFactor();
+
     return true;
 }
 
@@ -1469,6 +1479,9 @@ void CoordinatedGraphicsLayer::removeAnimation(const String& animationName)
 {
     m_animations.remove(animationName);
     didChangeAnimations();
+    // An animation has been removed, and it could be a scale animation, so check whether
+    // we need to update the animation scale factor.
+    updateAnimationScaleFactor();
 }
 
 void CoordinatedGraphicsLayer::suspendAnimations(MonotonicTime time)
@@ -1504,6 +1517,32 @@ PlatformLayer* CoordinatedGraphicsLayer::platformLayer() const
     return m_nicosia.layer.get();
 }
 #endif
+
+void CoordinatedGraphicsLayer::updateAnimationScaleFactor()
+{
+    m_animationScaleFactor = m_animations.maximumScaleFactor();
+}
+
+void CoordinatedGraphicsLayer::updateAnimationOrTransformScaleFactor()
+{
+    TransformationMatrix::Decomposed2Type decomposed2;
+
+    float parentScale = 1.0;
+    if (parent()) {
+        downcast<CoordinatedGraphicsLayer>(*parent()).m_layerTransform.combinedForChildren().decompose2(decomposed2);
+        parentScale = std::max(decomposed2.scaleX, decomposed2.scaleY);
+    }
+
+    transform().decompose2(decomposed2);
+    float localScale = std::max(decomposed2.scaleX, decomposed2.scaleY);
+
+    float newScale = parentScale * std::max(m_animationScaleFactor, localScale);
+
+    if (newScale != m_animationOrTransformScaleFactor) {
+        m_animationOrTransformScaleFactor = newScale;
+        m_pendingContentsScaleAdjustment = true;
+    }
+}
 
 static void dumpInnerLayer(TextStream& textStream, const String& label, CoordinatedGraphicsLayer* layer, OptionSet<LayerTreeAsTextOptions> options)
 {
