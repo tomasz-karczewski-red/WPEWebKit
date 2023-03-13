@@ -346,6 +346,7 @@ protected:
     template <typename TrackPrivateType> void notifyPlayerOfTrack();
 
     void ensureAudioSourceProvider();
+    void checkPlayingConsistency();
 
     virtual bool doSeek(const MediaTime& position, float rate, GstSeekFlags);
     void invalidateCachedPosition() const;
@@ -651,6 +652,8 @@ private:
     RefPtr<GStreamerHolePunchHost> m_gstreamerHolePunchHost;
     Lock m_holePunchLock;
 #endif
+
+    bool m_didTryToRecoverPlayingState { false };
 };
 
 }
