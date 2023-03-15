@@ -91,15 +91,9 @@ static inline void fillRemoteInboundRTPStreamStats(RTCStatsReport::RemoteInbound
     if (gst_structure_get_double(structure, "jitter", &jitter))
         stats.jitter = jitter;
 
-#if GST_CHECK_VERSION(1, 21, 0)
     int64_t packetsLost;
     if (gst_structure_get_int64(structure, "packets-lost", &packetsLost))
         stats.packetsLost = packetsLost;
-#else
-    unsigned packetsLost;
-    if (gst_structure_get_uint(structure, "packets-lost", &packetsLost))
-        stats.packetsLost = packetsLost;
-#endif
 
     double roundTripTime;
     if (gst_structure_get_double(structure, "round-trip-time", &roundTripTime))
@@ -121,15 +115,9 @@ static inline void fillInboundRTPStreamStats(RTCStatsReport::InboundRtpStreamSta
     if (gst_structure_get_uint64(structure, "bytes-received", &value))
         stats.bytesReceived = value;
 
-#if GST_CHECK_VERSION(1, 21, 0)
     int64_t packetsLost;
     if (gst_structure_get_int64(structure, "packets-lost", &packetsLost))
         stats.packetsLost = packetsLost;
-#else
-    unsigned packetsLost;
-    if (gst_structure_get_uint(structure, "packets-lost", &packetsLost))
-        stats.packetsLost = packetsLost;
-#endif
 
     double jitter;
     if (gst_structure_get_double(structure, "jitter", &jitter))
@@ -402,20 +390,18 @@ static gboolean fillReportCallback(GQuark, const GValue* value, gpointer userDat
         // FIXME: Missing data-channel stats support.
         break;
     case GST_WEBRTC_STATS_LOCAL_CANDIDATE:
-    case GST_WEBRTC_STATS_REMOTE_CANDIDATE:
-        if (webkitGstCheckVersion(1, 21, 0)) {
-            RTCStatsReport::IceCandidateStats stats;
-            fillRTCCandidateStats(stats, statsType, structure);
-            report.set<IDLDOMString, IDLDictionary<RTCStatsReport::IceCandidateStats>>(stats.id, WTFMove(stats));
-        }
+    case GST_WEBRTC_STATS_REMOTE_CANDIDATE: {
+        RTCStatsReport::IceCandidateStats stats;
+        fillRTCCandidateStats(stats, statsType, structure);
+        report.set<IDLDOMString, IDLDictionary<RTCStatsReport::IceCandidateStats>>(stats.id, WTFMove(stats));
         break;
-    case GST_WEBRTC_STATS_CANDIDATE_PAIR:
-        if (webkitGstCheckVersion(1, 21, 0)) {
-            RTCStatsReport::IceCandidatePairStats stats;
-            fillRTCCandidatePairStats(stats, structure);
-            report.set<IDLDOMString, IDLDictionary<RTCStatsReport::IceCandidatePairStats>>(stats.id, WTFMove(stats));
-        }
+    }
+    case GST_WEBRTC_STATS_CANDIDATE_PAIR: {
+        RTCStatsReport::IceCandidatePairStats stats;
+        fillRTCCandidatePairStats(stats, structure);
+        report.set<IDLDOMString, IDLDictionary<RTCStatsReport::IceCandidatePairStats>>(stats.id, WTFMove(stats));
         break;
+    }
     case GST_WEBRTC_STATS_CERTIFICATE:
         // FIXME: Missing certificate stats support
         break;

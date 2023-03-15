@@ -162,7 +162,7 @@ public:
     MediaPlayer::ReadyState readyState() const final;
     void setPageIsVisible(bool visible) final;
     void setPageIsSuspended(bool suspended) final;
-    void setSize(const IntSize&) final;
+    void setPresentationSize(const IntSize&) final;
     // Prefer MediaTime based methods over float based.
     float duration() const final { return durationMediaTime().toFloat(); }
     double durationDouble() const final { return durationMediaTime().toDouble(); }
@@ -346,6 +346,7 @@ protected:
     template <typename TrackPrivateType> void notifyPlayerOfTrack();
 
     void ensureAudioSourceProvider();
+    void checkPlayingConsistency();
 
     virtual bool doSeek(const MediaTime& position, float rate, GstSeekFlags);
     void invalidateCachedPosition() const;
@@ -521,6 +522,9 @@ private:
     void configureDepayloader(GstElement*);
     void configureVideoDecoder(GstElement*);
     void configureElement(GstElement*);
+#if PLATFORM(BROADCOM) || USE(WESTEROS_SINK) || PLATFORM(AMLOGIC) || PLATFORM(REALTEK)
+    void configureElementPlatformQuirks(GstElement*);
+#endif
 
     void setPlaybinURL(const URL& urlString);
 
@@ -578,6 +582,7 @@ private:
     RefPtr<MediaStreamPrivate> m_streamPrivate;
 #endif
 
+    bool m_isMuted { false };
     bool m_visible { false };
     bool m_suspended { false };
 
@@ -648,6 +653,8 @@ private:
     RefPtr<GStreamerHolePunchHost> m_gstreamerHolePunchHost;
     Lock m_holePunchLock;
 #endif
+
+    bool m_didTryToRecoverPlayingState { false };
 };
 
 }

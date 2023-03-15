@@ -32,8 +32,11 @@
 #include <wtf/text/StringToIntegerConversion.h>
 
 #if USE(GSTREAMER_WEBRTC)
-#include "GStreamerVideoEncoder.h"
 #include <gst/rtp/rtp.h>
+#endif
+
+#if ENABLE(VIDEO)
+#include "VideoEncoderPrivateGStreamer.h"
 #endif
 
 namespace WebCore {
@@ -74,12 +77,19 @@ void GStreamerRegistryScanner::getSupportedDecodingTypes(HashSet<String, ASCIICa
 
 GStreamerRegistryScanner::ElementFactories::ElementFactories(OptionSet<ElementFactories::Type> types)
 {
+#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
+    if (types.contains(Type::AudioDecoder))
+        audioDecoderFactories = gst_element_factory_list_get_elements(GST_ELEMENT_FACTORY_TYPE_PARSER | GST_ELEMENT_FACTORY_TYPE_MEDIA_AUDIO, GST_RANK_MARGINAL);
+    if (types.contains(Type::VideoDecoder))
+        videoDecoderFactories = gst_element_factory_list_get_elements(GST_ELEMENT_FACTORY_TYPE_PARSER | GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO, GST_RANK_MARGINAL);
+#else
     if (types.contains(Type::AudioDecoder))
         audioDecoderFactories = gst_element_factory_list_get_elements(GST_ELEMENT_FACTORY_TYPE_DECODER | GST_ELEMENT_FACTORY_TYPE_MEDIA_AUDIO, GST_RANK_MARGINAL);
-    if (types.contains(Type::AudioParser))
-        audioParserFactories = gst_element_factory_list_get_elements(GST_ELEMENT_FACTORY_TYPE_PARSER | GST_ELEMENT_FACTORY_TYPE_MEDIA_AUDIO, GST_RANK_NONE);
     if (types.contains(Type::VideoDecoder))
         videoDecoderFactories = gst_element_factory_list_get_elements(GST_ELEMENT_FACTORY_TYPE_DECODER | GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO, GST_RANK_MARGINAL);
+#endif
+    if (types.contains(Type::AudioParser))
+        audioParserFactories = gst_element_factory_list_get_elements(GST_ELEMENT_FACTORY_TYPE_PARSER | GST_ELEMENT_FACTORY_TYPE_MEDIA_AUDIO, GST_RANK_NONE);
     if (types.contains(Type::VideoParser))
         videoParserFactories = gst_element_factory_list_get_elements(GST_ELEMENT_FACTORY_TYPE_PARSER | GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO, GST_RANK_MARGINAL);
     if (types.contains(Type::Demuxer))
@@ -94,6 +104,8 @@ GStreamerRegistryScanner::ElementFactories::ElementFactories(OptionSet<ElementFa
         rtpPayloaderFactories = gst_element_factory_list_get_elements(GST_ELEMENT_FACTORY_TYPE_PAYLOADER, GST_RANK_MARGINAL);
     if (types.contains(Type::RtpDepayloader))
         rtpDepayloaderFactories = gst_element_factory_list_get_elements(GST_ELEMENT_FACTORY_TYPE_DEPAYLOADER, GST_RANK_MARGINAL);
+    if (types.contains(Type::Decryptor))
+        decryptorFactories = gst_element_factory_list_get_elements(GST_ELEMENT_FACTORY_TYPE_DECRYPTOR, GST_RANK_MARGINAL);
 }
 
 GStreamerRegistryScanner::ElementFactories::~ElementFactories()
@@ -108,6 +120,7 @@ GStreamerRegistryScanner::ElementFactories::~ElementFactories()
     gst_plugin_feature_list_free(muxerFactories);
     gst_plugin_feature_list_free(rtpPayloaderFactories);
     gst_plugin_feature_list_free(rtpDepayloaderFactories);
+    gst_plugin_feature_list_free(decryptorFactories);
 }
 
 const char* GStreamerRegistryScanner::ElementFactories::elementFactoryTypeToString(GStreamerRegistryScanner::ElementFactories::Type factoryType)
@@ -133,6 +146,8 @@ const char* GStreamerRegistryScanner::ElementFactories::elementFactoryTypeToStri
         return "RTP payloader";
     case Type::RtpDepayloader:
         return "RTP depayloader";
+    case Type::Decryptor:
+        return "Decryptor";
     case Type::All:
         break;
     }
@@ -163,6 +178,8 @@ GList* GStreamerRegistryScanner::ElementFactories::factory(GStreamerRegistryScan
         return rtpPayloaderFactories;
     case GStreamerRegistryScanner::ElementFactories::Type::RtpDepayloader:
         return rtpDepayloaderFactories;
+    case GStreamerRegistryScanner::ElementFactories::Type::Decryptor:
+        return decryptorFactories;
     case GStreamerRegistryScanner::ElementFactories::Type::All:
         break;
     }
@@ -219,7 +236,15 @@ GStreamerRegistryScanner::RegistryLookupResult GStreamerRegistryScanner::Element
             auto* factory = reinterpret_cast<GstElementFactory*>(factories->data);
             auto metadata = String::fromLatin1(gst_element_factory_get_metadata(factory, GST_ELEMENT_METADATA_KLASS));
             auto components = metadata.split('/');
-            if (components.contains("Hardware"_s)) {
+            if (components.contains("Hardware"_s)
+#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
+                || g_str_has_prefix(GST_OBJECT_NAME(factory), "brcm")
+#elif PLATFORM(REALTEK)
+                || g_str_has_prefix(GST_OBJECT_NAME(factory), "omx")
+#elif USE(WESTEROS_SINK)
+                || g_str_has_prefix(GST_OBJECT_NAME(factory), "westeros")
+#endif
+                ) {
                 isUsingHardware = true;
                 selectedFactory = factory;
                 break;
@@ -642,6 +667,42 @@ MediaPlayerEnums::SupportsType GStreamerRegistryScanner::isContentTypeSupported(
 
     const auto& codecs = contentType.codecs();
 
+#if ENABLE(ENCRYPTED_MEDIA)
+    String cryptoblockformat = contentType.parameter("cryptoblockformat"_s);
+    if (!cryptoblockformat.isEmpty()) {
+        OptionSet<ElementFactories::Type> factoryTypes;
+        factoryTypes.add(ElementFactories::Type::Decryptor);
+        auto factories = ElementFactories(factoryTypes);
+
+        // https://developers.google.com/youtube/devices/living-room/certification-requirements
+        // section 15.1.3: The isTypeSupported method MUST support the cryptoblockformat mime-type
+        // parameter, and MUST support subsample as a parameter value.
+        if (cryptoblockformat != "subsample"_s)
+            return SupportsType::IsNotSupported;
+
+        if (!containerType.endsWith("webm"_s))
+            return SupportsType::IsNotSupported;
+
+#if GST_CHECK_VERSION(1, 22, 0)
+        for (const auto& mimeCodec : codecs) {
+            auto codecCaps = adoptGRef(gst_codec_utils_caps_from_mime_codec(mimeCodec.ascii().data()));
+            if (!codecCaps) {
+                GST_WARNING("Unable to convert codec %s to caps", mimeCodec.ascii().data());
+                continue;
+            }
+            auto* structure = gst_caps_get_structure(codecCaps.get(), 0);
+            const char* name = gst_structure_get_name(structure);
+            auto caps = adoptGRef(gst_caps_new_simple("application/x-webm-enc", "original-media-type", G_TYPE_STRING, name, nullptr));
+            if (!factories.hasElementForCaps(ElementFactories::Type::Decryptor, caps))
+                return SupportsType::IsNotSupported;
+        }
+#else
+        if (!factories.hasElementForMediaType(ElementFactories::Type::Decryptor, "application/x-webm-enc"))
+            return SupportsType::IsNotSupported;
+#endif // GST_CHECK_VERSION(1, 22, 0)
+    }
+#endif // ENABLE(ENCRYPTED_MEDIA)
+
     // Spec says we should not return "probably" if the codecs string is empty.
     if (codecs.isEmpty())
         return SupportsType::MayBeSupported;
@@ -880,7 +941,7 @@ void GStreamerRegistryScanner::fillVideoRtpCapabilities(Configuration configurat
         if (configuration == Configuration::Decoding)
             element = gst_element_factory_create(codecLookupResult.factory.get(), nullptr);
         else
-            element = gst_element_factory_make("webrtcvideoencoder", nullptr);
+            element = gst_element_factory_make("webkitvideoencoder", nullptr);
 
         if (element) {
             Vector<String> profiles = {
@@ -900,8 +961,8 @@ void GStreamerRegistryScanner::fillVideoRtpCapabilities(Configuration configurat
                 auto caps = adoptGRef(gst_caps_new_empty_simple("video/x-h264"));
                 gst_codec_utils_h264_caps_set_level_and_profile(caps.get(), sps, 3);
 
-                if (WEBKIT_IS_WEBRTC_VIDEO_ENCODER(element.get())) {
-                    if (!webrtcVideoEncoderSupportsFormat(WEBKIT_WEBRTC_VIDEO_ENCODER(element.get()), caps))
+                if (WEBKIT_IS_VIDEO_ENCODER(element.get())) {
+                    if (!videoEncoderSupportsFormat(WEBKIT_VIDEO_ENCODER(element.get()), caps))
                         continue;
                 } else if (!gst_element_factory_can_sink_any_caps(gst_element_get_factory(element.get()), caps.get()))
                     continue;

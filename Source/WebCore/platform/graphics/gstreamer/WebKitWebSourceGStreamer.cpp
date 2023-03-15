@@ -1182,6 +1182,9 @@ bool webKitSrcWouldTaintOrigin(WebKitWebSrc* src, const SecurityOrigin& origin)
 {
     DataMutexLocker members { src->priv->dataMutex };
 
+    if (!members->resource)
+        return false;
+
     auto* cachedResourceStreamingClient = reinterpret_cast<CachedResourceStreamingClient*>(members->resource->client());
     for (auto& responseOrigin : cachedResourceStreamingClient->securityOrigins()) {
         if (!origin.isSameOriginDomain(*responseOrigin))

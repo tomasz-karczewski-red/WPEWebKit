@@ -115,6 +115,7 @@ public:
     void firstVideoFrameAvailable();
     void renderingModeChanged();
 #if PLATFORM(COCOA)
+    void videoInlineSizeChanged(const WebCore::FloatSize&);
     void setVideoInlineSizeFenced(const WebCore::FloatSize&, const WTF::MachSendRight&);
 #endif
 
@@ -290,6 +291,8 @@ private:
     bool didLoadingProgress() const final;
     void didLoadingProgressAsync(WebCore::MediaPlayer::DidLoadingProgressCompletionHandler&&) const final;
 
+    void setPresentationSize(const WebCore::IntSize&) final;
+
     void paint(WebCore::GraphicsContext&, const WebCore::FloatRect&) final;
     void paintCurrentFrameInContext(WebCore::GraphicsContext&, const WebCore::FloatRect&) final;
 #if !USE(AVFOUNDATION)
@@ -416,6 +419,8 @@ private:
     void stopVideoFrameMetadataGathering() final;
 
     void playerContentBoxRectChanged(const WebCore::LayoutRect&) final;
+
+    void setShouldDisableHDR(bool) final;
 
 #if PLATFORM(COCOA)
     void pushVideoFrameMetadata(WebCore::VideoFrameMetadata&&, RemoteVideoFrameProxy::Properties&&);

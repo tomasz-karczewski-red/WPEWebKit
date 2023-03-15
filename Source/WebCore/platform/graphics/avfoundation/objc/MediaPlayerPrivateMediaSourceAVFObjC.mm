@@ -40,6 +40,7 @@
 #import "MediaSourcePrivateAVFObjC.h"
 #import "MediaSourcePrivateClient.h"
 #import "PixelBufferConformerCV.h"
+#import "PlatformScreen.h"
 #import "TextTrackRepresentation.h"
 #import "VideoFrameCV.h"
 #import "VideoLayerManagerObjC.h"
@@ -51,6 +52,7 @@
 #import <objc_runtime.h>
 #import <pal/avfoundation/MediaTimeAVFoundation.h>
 #import <pal/spi/cocoa/AVFoundationSPI.h>
+#import <pal/spi/cocoa/QuartzCoreSPI.h>
 #import <wtf/Deque.h>
 #import <wtf/FileSystem.h>
 #import <wtf/MainThread.h>
@@ -73,14 +75,16 @@ namespace WebCore {
 String convertEnumerationToString(MediaPlayerPrivateMediaSourceAVFObjC::SeekState enumerationValue)
 {
     static const NeverDestroyed<String> values[] = {
+        MAKE_STATIC_STRING_IMPL("WaitingToSeek"),
         MAKE_STATIC_STRING_IMPL("Seeking"),
         MAKE_STATIC_STRING_IMPL("WaitingForAvailableFame"),
         MAKE_STATIC_STRING_IMPL("SeekCompleted"),
     };
-    static_assert(static_cast<size_t>(MediaPlayerPrivateMediaSourceAVFObjC::SeekState::Seeking) == 0, "MediaPlayerPrivateMediaSourceAVFObjC::SeekState::Seeking is not 0 as expected");
-    static_assert(static_cast<size_t>(MediaPlayerPrivateMediaSourceAVFObjC::SeekState::WaitingForAvailableFame) == 1, "MediaPlayerPrivateMediaSourceAVFObjC::SeekState::WaitingForAvailableFame is not 1 as expected");
-    static_assert(static_cast<size_t>(MediaPlayerPrivateMediaSourceAVFObjC::SeekState::SeekCompleted) == 2, "MediaPlayerPrivateMediaSourceAVFObjC::SeekState::SeekCompleted is not 2 as expected");
-    ASSERT(static_cast<size_t>(enumerationValue) < WTF_ARRAY_LENGTH(values));
+    static_assert(static_cast<size_t>(MediaPlayerPrivateMediaSourceAVFObjC::SeekState::WaitingToSeek) == 0, "MediaPlayerPrivateMediaSourceAVFObjC::SeekState::WaitingToSeek is not 0 as expected");
+    static_assert(static_cast<size_t>(MediaPlayerPrivateMediaSourceAVFObjC::SeekState::Seeking) == 1, "MediaPlayerPrivateMediaSourceAVFObjC::SeekState::Seeking is not 1 as expected");
+    static_assert(static_cast<size_t>(MediaPlayerPrivateMediaSourceAVFObjC::SeekState::WaitingForAvailableFame) == 2, "MediaPlayerPrivateMediaSourceAVFObjC::SeekState::WaitingForAvailableFame is not 2 as expected");
+    static_assert(static_cast<size_t>(MediaPlayerPrivateMediaSourceAVFObjC::SeekState::SeekCompleted) == 3, "MediaPlayerPrivateMediaSourceAVFObjC::SeekState::SeekCompleted is not 3 as expected");
+    ASSERT(static_cast<size_t>(enumerationValue) < std::size(values));
     return values[static_cast<size_t>(enumerationValue)];
 }
 
@@ -149,7 +153,7 @@ MediaPlayerPrivateMediaSourceAVFObjC::MediaPlayerPrivateMediaSourceAVFObjC(Media
     , m_readyState(MediaPlayer::ReadyState::HaveNothing)
     , m_rate(1)
     , m_playing(0)
-    , m_seeking(false)
+    , m_synchronizerSeeking(false)
     , m_loadingProgressed(false)
     , m_logger(player->mediaPlayerLogger())
     , m_logIdentifier(player->mediaPlayerLogIdentifier())
@@ -172,10 +176,10 @@ MediaPlayerPrivateMediaSourceAVFObjC::MediaPlayerPrivateMediaSourceAVFObjC(Media
             return;
 
         auto clampedTime = CMTIME_IS_NUMERIC(time) ? clampTimeToLastSeekTime(PAL::toMediaTime(time)) : MediaTime::zeroTime();
-        ALWAYS_LOG(logSiteIdentifier, "synchronizer fired: time clamped = ", clampedTime, ", seeking = ", m_seeking, ", pending = ", !!m_pendingSeek);
+        ALWAYS_LOG(logSiteIdentifier, "synchronizer fired: time clamped = ", clampedTime, ", seeking = ", m_synchronizerSeeking, ", pending = ", !!m_pendingSeek);
 
-        if (m_seeking && !m_pendingSeek) {
-            m_seeking = false;
+        if (m_synchronizerSeeking && !m_pendingSeek) {
+            m_synchronizerSeeking = false;
 
             if (shouldBePlaying())
                 [m_synchronizer setRate:m_rate];
@@ -521,7 +525,6 @@ void MediaPlayerPrivateMediaSourceAVFObjC::seekWithTolerance(const MediaTime& ti
 {
     ALWAYS_LOG(LOGIDENTIFIER, "time = ", time, ", negativeThreshold = ", negativeThreshold, ", positiveThreshold = ", positiveThreshold);
 
-    m_seeking = true;
     m_pendingSeek = makeUnique<PendingSeek>(time, negativeThreshold, positiveThreshold);
 
     if (m_seekTimer.isActive())
@@ -548,34 +551,38 @@ void MediaPlayerPrivateMediaSourceAVFObjC::seekInternal()
     if (m_lastSeekTime.hasDoubleValue())
         m_lastSeekTime = MediaTime::createWithDouble(m_lastSeekTime.toDouble(), MediaTime::DefaultTimeScale);
 
+    m_seekCompleted = WaitingToSeek;
+
+    m_mediaSourcePrivate->willSeek();
+    m_mediaSourcePrivate->seekToTime(m_lastSeekTime);
+}
+
+void MediaPlayerPrivateMediaSourceAVFObjC::waitForSeekCompleted()
+{
+    if (m_seekCompleted != WaitingToSeek)
+        return;
+
+    ALWAYS_LOG(LOGIDENTIFIER);
+    m_seekCompleted = Seeking;
+
     MediaTime synchronizerTime = PAL::toMediaTime(PAL::CMTimebaseGetTime([m_synchronizer timebase]));
     ALWAYS_LOG(LOGIDENTIFIER, "seekTime = ", m_lastSeekTime, ", synchronizerTime = ", synchronizerTime);
 
     bool doesNotRequireSeek = synchronizerTime == m_lastSeekTime;
 
-    m_mediaSourcePrivate->willSeek();
     [m_synchronizer setRate:0 time:PAL::toCMTime(m_lastSeekTime)];
-    m_mediaSourcePrivate->seekToTime(m_lastSeekTime);
 
     // In cases where the destination seek time precisely matches the synchronizer's existing time
     // no time jumped notification will be issued. In this case, just notify the MediaPlayer that
     // the seek completed successfully.
     if (doesNotRequireSeek) {
-        m_seeking = false;
+        m_synchronizerSeeking = false;
 
         if (shouldBePlaying())
             [m_synchronizer setRate:m_rate];
         if (!seeking() && m_seekCompleted)
             m_player->timeChanged();
     }
-}
-
-void MediaPlayerPrivateMediaSourceAVFObjC::waitForSeekCompleted()
-{
-    if (!m_seeking)
-        return;
-    ALWAYS_LOG(LOGIDENTIFIER);
-    m_seekCompleted = Seeking;
 }
 
 void MediaPlayerPrivateMediaSourceAVFObjC::seekCompleted()
@@ -591,13 +598,13 @@ void MediaPlayerPrivateMediaSourceAVFObjC::seekCompleted()
     m_seekCompleted = SeekCompleted;
     if (shouldBePlaying())
         [m_synchronizer setRate:m_rate];
-    if (!m_seeking)
+    if (!m_synchronizerSeeking)
         m_player->timeChanged();
 }
 
 bool MediaPlayerPrivateMediaSourceAVFObjC::seeking() const
 {
-    return m_seeking || m_seekCompleted != SeekCompleted;
+    return m_pendingSeek || m_synchronizerSeeking || m_seekCompleted != SeekCompleted;
 }
 
 void MediaPlayerPrivateMediaSourceAVFObjC::setRateDouble(double rate)
@@ -792,9 +799,9 @@ bool MediaPlayerPrivateMediaSourceAVFObjC::shouldEnsureLayer() const
 #endif
 }
 
-void MediaPlayerPrivateMediaSourceAVFObjC::playerContentBoxRectChanged(const LayoutRect& newRect)
+void MediaPlayerPrivateMediaSourceAVFObjC::setPresentationSize(const IntSize& newSize)
 {
-    if (!m_sampleBufferDisplayLayer && !newRect.isEmpty())
+    if (!m_sampleBufferDisplayLayer && !newSize.isEmpty())
         updateDisplayLayerAndDecompressionSession();
 }
 
@@ -911,9 +918,12 @@ void MediaPlayerPrivateMediaSourceAVFObjC::ensureLayer()
         return;
     }
 
+    if ([m_sampleBufferDisplayLayer respondsToSelector:@selector(setToneMapToStandardDynamicRange:)])
+        [m_sampleBufferDisplayLayer setToneMapToStandardDynamicRange:m_player->shouldDisableHDR()];
+
     if (m_mediaSourcePrivate)
         m_mediaSourcePrivate->setVideoLayer(m_sampleBufferDisplayLayer.get());
-    m_videoLayerManager->setVideoLayer(m_sampleBufferDisplayLayer.get(), snappedIntRect(m_player->playerContentBoxRect()).size());
+    m_videoLayerManager->setVideoLayer(m_sampleBufferDisplayLayer.get(), m_player->presentationSize());
     m_player->renderingModeChanged();
 }
 
@@ -1037,8 +1047,6 @@ void MediaPlayerPrivateMediaSourceAVFObjC::updateAllRenderersHaveAvailableSample
 
 void MediaPlayerPrivateMediaSourceAVFObjC::durationChanged()
 {
-    m_player->durationChanged();
-
     if (m_durationObserver)
         [m_synchronizer removeTimeObserver:m_durationObserver.get()];
 
@@ -1046,6 +1054,12 @@ void MediaPlayerPrivateMediaSourceAVFObjC::durationChanged()
         return;
 
     MediaTime duration = m_mediaSourcePrivate->duration();
+    // Avoid emiting durationchanged in the case where the previous duration was unkniwn as that case is already handled
+    // by the HTMLMediaElement.
+    if (m_mediaTimeDuration != duration && m_mediaTimeDuration.isValid())
+        m_player->durationChanged();
+    m_mediaTimeDuration = duration;
+
     NSArray* times = @[[NSValue valueWithCMTime:PAL::toCMTime(duration)]];
 
     auto logSiteIdentifier = LOGIDENTIFIER;
@@ -1487,6 +1501,15 @@ void MediaPlayerPrivateMediaSourceAVFObjC::stopVideoFrameMetadataGathering()
     if (m_videoFrameMetadataGatheringObserver)
         [m_synchronizer removeTimeObserver:m_videoFrameMetadataGatheringObserver.get()];
     m_videoFrameMetadataGatheringObserver = nil;
+}
+
+void MediaPlayerPrivateMediaSourceAVFObjC::setShouldDisableHDR(bool shouldDisable)
+{
+    if (![m_sampleBufferDisplayLayer respondsToSelector:@selector(setToneMapToStandardDynamicRange:)])
+        return;
+
+    ALWAYS_LOG(LOGIDENTIFIER, shouldDisable);
+    [m_sampleBufferDisplayLayer setToneMapToStandardDynamicRange:shouldDisable];
 }
 
 WTFLogChannel& MediaPlayerPrivateMediaSourceAVFObjC::logChannel() const

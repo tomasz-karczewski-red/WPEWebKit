@@ -62,6 +62,7 @@
 #include <limits>
 #include <wtf/CheckedArithmetic.h>
 #include <wtf/IsoMallocInlines.h>
+#include <wtf/StringPrintStream.h>
 #include <wtf/WeakPtr.h>
 
 namespace WebCore {
@@ -493,6 +494,8 @@ ExceptionOr<void> SourceBuffer::appendBufferInternal(const unsigned char* data, 
     if (isRemoved() || m_updating)
         return Exception { InvalidStateError };
 
+    DEBUG_LOG(LOGIDENTIFIER, "size = ", size, ", buffered = ", m_private->buffered()->ranges());
+
     // 3. If the readyState attribute of the parent media source is in the "ended" state then run the following steps:
     // 3.1. Set the readyState attribute of the parent media source to "open"
     // 3.2. Queue a task to fire a simple event named sourceopen at the parent media source .
@@ -589,7 +592,7 @@ void SourceBuffer::sourceBufferPrivateAppendComplete(AppendResult result)
     monitorBufferingRate();
     m_private->reenqueueMediaIfNeeded(m_source->currentTime());
 
-    DEBUG_LOG(LOGIDENTIFIER);
+    DEBUG_LOG(LOGIDENTIFIER, "buffered = ", m_private->buffered()->ranges());
 }
 
 void SourceBuffer::sourceBufferPrivateDidReceiveRenderingError(int64_t error)
@@ -1172,14 +1175,17 @@ void SourceBuffer::sourceBufferPrivateDidParseSample(double frameDuration)
     m_bufferedSinceLastMonitor += frameDuration;
 }
 
-void SourceBuffer::sourceBufferPrivateDurationChanged(const MediaTime& duration)
+void SourceBuffer::sourceBufferPrivateDurationChanged(const MediaTime& duration, CompletionHandler<void()>&& completionHandler)
 {
-    if (isRemoved())
+    if (isRemoved()) {
+        completionHandler();
         return;
+    }
 
     m_source->setDurationInternal(duration);
     if (m_textTracks)
         m_textTracks->setDuration(duration);
+    completionHandler();
 }
 
 void SourceBuffer::sourceBufferPrivateHighestPresentationTimestampChanged(const MediaTime& timestamp)

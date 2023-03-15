@@ -612,6 +612,8 @@ public:
     void updateMediaPlayer(IntSize, bool);
     WEBCORE_EXPORT bool elementIsHidden() const;
 
+    bool hasSource() const { return hasCurrentSrc() || srcObject(); }
+
 protected:
     HTMLMediaElement(const QualifiedName&, Document&, bool createdByParser);
     virtual ~HTMLMediaElement();
@@ -665,6 +667,7 @@ private:
     void didFinishInsertingNode() override;
     void removedFromAncestor(RemovalType, ContainerNode&) override;
     void didRecalcStyle(Style::Change) override;
+    bool canStartSelection() const override { return false; } 
     bool isInteractiveContent() const override;
 
     void setFullscreenMode(VideoFullscreenMode);
@@ -785,6 +788,8 @@ private:
 
     void mediaPlayerBufferedTimeRangesChanged() final;
     bool mediaPlayerPrefersSandboxedParsing() const final;
+
+    bool mediaPlayerShouldDisableHDR() const final { return shouldDisableHDR(); }
 
 #if USE(GSTREAMER)
     void requestInstallMissingPlugins(const String& details, const String& description, MediaPlayerRequestInstallMissingPluginsCallback&) final;
@@ -955,6 +960,7 @@ private:
 
     bool isVideoTooSmallForInlinePlayback();
     void updateShouldAutoplay();
+    void scheduleUpdateShouldAutoplay();
 
     void pauseAfterDetachedTask();
     void schedulePlaybackControlsManagerUpdate();
@@ -983,6 +989,8 @@ private:
     const Logger& mediaPlayerLogger() final { return logger(); }
 #endif
 
+    bool shouldDisableHDR() const;
+
     Timer m_progressEventTimer;
     Timer m_playbackProgressTimer;
     Timer m_scanTimer;
@@ -999,6 +1007,7 @@ private:
     TaskCancellationGroup m_playbackControlsManagerBehaviorRestrictionsTaskCancellationGroup;
     TaskCancellationGroup m_bufferedTimeRangesChangedTaskCancellationGroup;
     TaskCancellationGroup m_resourceSelectionTaskCancellationGroup;
+    TaskCancellationGroup m_updateShouldAutoplayTaskCancellationGroup;
     RefPtr<TimeRanges> m_playedTimeRanges;
     TaskCancellationGroup m_asyncEventsCancellationGroup;
 #if PLATFORM(IOS_FAMILY)

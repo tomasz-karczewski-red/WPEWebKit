@@ -936,7 +936,7 @@ void HTMLMediaElement::didAttachRenderers()
         if (m_mediaSession && m_mediaSession->wantsToObserveViewportVisibilityForAutoplay())
             renderer->registerForVisibleInViewportCallback();
     }
-    updateShouldAutoplay();
+    scheduleUpdateShouldAutoplay();
 }
 
 void HTMLMediaElement::willDetachRenderers()
@@ -947,7 +947,7 @@ void HTMLMediaElement::willDetachRenderers()
 
 void HTMLMediaElement::didDetachRenderers()
 {
-    updateShouldAutoplay();
+    scheduleUpdateShouldAutoplay();
 }
 
 void HTMLMediaElement::didRecalcStyle(Style::Change)
@@ -4747,7 +4747,7 @@ void HTMLMediaElement::layoutSizeChanged()
 
 void HTMLMediaElement::visibilityDidChange()
 {
-    updateShouldAutoplay();
+    scheduleUpdateShouldAutoplay();
 }
 
 void HTMLMediaElement::setSelectedTextTrack(TextTrack* trackToSelect)
@@ -5831,6 +5831,7 @@ void HTMLMediaElement::cancelPendingTasks()
     m_resumeTaskCancellationGroup.cancel();
     m_seekTaskCancellationGroup.cancel();
     m_playbackControlsManagerBehaviorRestrictionsTaskCancellationGroup.cancel();
+    m_updateShouldAutoplayTaskCancellationGroup.cancel();
 #if !HAVE(MEDIA_VOLUME_PER_ELEMENT)
     m_volumeRevertTaskCancellationGroup.cancel();
 #endif
@@ -7036,6 +7037,7 @@ void HTMLMediaElement::createMediaPlayer() WTF_IGNORES_THREAD_SAFETY_ANALYSIS
     m_player = MediaPlayer::create(*this);
     m_player->setBufferingPolicy(m_bufferingPolicy);
     m_player->setPreferredDynamicRangeMode(m_overrideDynamicRangeMode.value_or(preferredDynamicRangeMode(document().view())));
+    m_player->setShouldDisableHDR(shouldDisableHDR());
     m_player->setMuted(effectiveMuted());
     m_player->setPageIsVisible(!m_elementIsHidden);
     m_player->setVisibleInViewport(isVisibleInViewport());
@@ -7439,15 +7441,21 @@ String HTMLMediaElement::sourceApplicationIdentifier() const
 
 void HTMLMediaElement::setPreferredDynamicRangeMode(DynamicRangeMode mode)
 {
-    if (m_player && !m_overrideDynamicRangeMode)
-        m_player->setPreferredDynamicRangeMode(mode);
+    if (!m_player || m_overrideDynamicRangeMode)
+        return;
+
+    m_player->setPreferredDynamicRangeMode(mode);
+    m_player->setShouldDisableHDR(shouldDisableHDR());
 }
 
 void HTMLMediaElement::setOverridePreferredDynamicRangeMode(DynamicRangeMode mode)
 {
     m_overrideDynamicRangeMode = mode;
-    if (m_player)
-        m_player->setPreferredDynamicRangeMode(mode);
+    if (!m_player)
+        return;
+
+    m_player->setPreferredDynamicRangeMode(mode);
+    m_player->setShouldDisableHDR(shouldDisableHDR());
 }
 
 Vector<String> HTMLMediaElement::mediaPlayerPreferredAudioCharacteristics() const
@@ -7934,7 +7942,7 @@ PlatformMediaSession::MediaType HTMLMediaElement::mediaType() const
 {
     if (m_player && m_readyState >= HAVE_METADATA) {
         auto hasVideo = this->hasVideo();
-        if (hasVideo && hasAudio() && !muted())
+        if (hasVideo && canProduceAudio())
             return PlatformMediaSession::MediaType::VideoAudio;
         return hasVideo ? PlatformMediaSession::MediaType::Video : PlatformMediaSession::MediaType::Audio;
     }
@@ -7975,8 +7983,16 @@ bool HTMLMediaElement::canProduceAudio() const
     if (isSuspended())
         return false;
 
+    if (!volume())
+        return false;
+
+    // For GStreamer ports the semantics of IsPlayingAudio slightly differ from Apple ports. The
+    // webkit_web_view_is_playing_audio() API is expected to return true if a page is producing
+    // audio even though it might be muted.
+#if !USE(GSTREAMER)
     if (muted())
         return false;
+#endif
 
     if (m_player && m_readyState >= HAVE_METADATA)
         return hasAudio();
@@ -8236,14 +8252,7 @@ MediaProducerMediaStateFlags HTMLMediaElement::mediaState() const
     if (!isPlaying())
         return state;
 
-    // For GStreamer ports the semantics of IsPlayingAudio slightly differ from Apple ports. The
-    // webkit_web_view_is_playing_audio() API is expected to return true if a page is producing
-    // audio even though it might be muted.
-    bool isPlayingAudio = hasAudio && volume();
-#if !USE(GSTREAMER)
-    isPlayingAudio = isPlayingAudio && !muted();
-#endif
-    if (isPlayingAudio)
+    if (canProduceAudio())
         state.add(MediaProducerMediaState::IsPlayingAudio);
 
     if (hasActiveVideo)
@@ -8403,6 +8412,16 @@ void HTMLMediaElement::isVisibleInViewportChanged()
         mediaSession().isVisibleInViewportChanged();
         updateShouldAutoplay();
         schedulePlaybackControlsManagerUpdate();
+    });
+}
+
+void HTMLMediaElement::scheduleUpdateShouldAutoplay()
+{
+    if (m_updateShouldAutoplayTaskCancellationGroup.hasPendingTask())
+        return;
+
+    queueCancellableTaskKeepingObjectAlive(*this, TaskSource::MediaElement, m_updateShouldAutoplayTaskCancellationGroup, [this] () {
+        updateShouldAutoplay();
     });
 }
 
@@ -8598,10 +8617,10 @@ MediaElementSession& HTMLMediaElement::mediaSession() const
     return *m_mediaSession;
 }
 
-void HTMLMediaElement::updateMediaPlayer(IntSize elementSize, bool shouldMaintainAspectRatio)
+void HTMLMediaElement::updateMediaPlayer(IntSize presentationSize, bool shouldMaintainAspectRatio)
 {
     ALWAYS_LOG(LOGIDENTIFIER);
-    m_player->setSize(elementSize);
+    m_player->setPresentationSize(presentationSize);
     visibilityStateChanged();
     m_player->setVisibleInViewport(isVisibleInViewport());
 
@@ -8619,6 +8638,12 @@ void HTMLMediaElement::mediaPlayerQueueTaskOnEventLoop(Function<void()>&& task)
 template<typename T> void HTMLMediaElement::scheduleEventOn(T& target, Ref<Event>&& event)
 {
     target.queueCancellableTaskToDispatchEvent(target, TaskSource::MediaElement, m_asyncEventsCancellationGroup, WTFMove(event));
+}
+
+
+bool HTMLMediaElement::shouldDisableHDR() const
+{
+    return !screenSupportsHighDynamicRange(document().view());
 }
 
 }

@@ -640,7 +640,7 @@ void MediaPlayerPrivateAVFoundationObjC::createAVPlayerLayer()
     [m_videoLayer addObserver:m_objcObserver.get() forKeyPath:@"readyForDisplay" options:NSKeyValueObservingOptionNew context:(void *)MediaPlayerAVFoundationObservationContextAVPlayerLayer];
     updateVideoLayerGravity();
     [m_videoLayer setContentsScale:player()->playerContentsScale()];
-    m_videoLayerManager->setVideoLayer(m_videoLayer.get(), snappedIntRect(player()->playerContentBoxRect()).size());
+    m_videoLayerManager->setVideoLayer(m_videoLayer.get(), player()->presentationSize());
 
 #if PLATFORM(IOS_FAMILY) && !PLATFORM(WATCHOS) && !PLATFORM(APPLETV)
     if ([m_videoLayer respondsToSelector:@selector(setPIPModeEnabled:)])
@@ -1079,6 +1079,9 @@ void MediaPlayerPrivateAVFoundationObjC::createAVPlayer()
     if ([m_avPlayer respondsToSelector:@selector(setVideoRangeOverride:)])
         m_avPlayer.get().videoRangeOverride = convertDynamicRangeModeEnumToAVVideoRange(player()->preferredDynamicRangeMode());
 #endif
+
+    if ([m_videoLayer respondsToSelector:@selector(setToneMapToStandardDynamicRange:)])
+        [m_videoLayer setToneMapToStandardDynamicRange:player()->shouldDisableHDR()];
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
     updateDisableExternalPlayback();
@@ -3817,6 +3820,15 @@ void MediaPlayerPrivateAVFoundationObjC::setPreferredDynamicRangeMode(DynamicRan
 #else
     UNUSED_PARAM(mode);
 #endif
+}
+
+void MediaPlayerPrivateAVFoundationObjC::setShouldDisableHDR(bool shouldDisable)
+{
+    if (![m_videoLayer respondsToSelector:@selector(setToneMapToStandardDynamicRange:)])
+        return;
+
+    ALWAYS_LOG(LOGIDENTIFIER, shouldDisable);
+    [m_videoLayer setToneMapToStandardDynamicRange:shouldDisable];
 }
 
 void MediaPlayerPrivateAVFoundationObjC::audioOutputDeviceChanged()

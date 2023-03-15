@@ -95,6 +95,7 @@ RemoteMediaPlayerProxy::RemoteMediaPlayerProxy(RemoteMediaPlayerManagerProxy& ma
     m_player = MediaPlayer::create(*this, m_engineIdentifier);
     if (auto* playerPrivate = m_player->playerPrivate())
         playerPrivate->setResourceOwner(resourceOwner);
+    m_player->setPresentationSize(m_configuration.presentationSize);
 }
 
 RemoteMediaPlayerProxy::~RemoteMediaPlayerProxy()
@@ -289,6 +290,15 @@ void RemoteMediaPlayerProxy::setRate(double rate)
 void RemoteMediaPlayerProxy::didLoadingProgress(CompletionHandler<void(bool)>&& completionHandler)
 {
     m_player->didLoadingProgress(WTFMove(completionHandler));
+}
+
+void RemoteMediaPlayerProxy::setPresentationSize(const WebCore::IntSize& size)
+{
+    if (size == m_configuration.presentationSize)
+        return;
+
+    m_configuration.presentationSize = size;
+    m_player->setPresentationSize(size);
 }
 
 RefPtr<PlatformMediaResource> RemoteMediaPlayerProxy::requestResource(ResourceRequest&& request, PlatformMediaResourceLoader::LoadOptions options)
@@ -915,6 +925,17 @@ void RemoteMediaPlayerProxy::videoFrameForCurrentTimeIfChanged(CompletionHandler
     }
     completionHandler(WTFMove(result), changed);
 }
+
+void RemoteMediaPlayerProxy::setShouldDisableHDR(bool shouldDisable)
+{
+    if (m_configuration.shouldDisableHDR == shouldDisable)
+        return;
+
+    m_configuration.shouldDisableHDR = shouldDisable;
+    if (m_player)
+        m_player->setShouldDisableHDR(shouldDisable);
+}
+
 
 void RemoteMediaPlayerProxy::updateCachedState(bool forceCurrentTimeUpdate)
 {

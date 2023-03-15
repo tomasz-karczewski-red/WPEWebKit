@@ -159,7 +159,7 @@ public:
     unsigned long long totalBytes() const final { return 0; }
     bool didLoadingProgress() const final { return false; }
 
-    void setSize(const IntSize&) final { }
+    void setPresentationSize(const IntSize&) final { }
 
     void paint(GraphicsContext&, const FloatRect&) final { }
     DestinationColorSpace colorSpace() final { return DestinationColorSpace::SRGB(); }
@@ -1057,10 +1057,13 @@ void MediaPlayer::didLoadingProgress(DidLoadingProgressCompletionHandler&& callb
     m_private->didLoadingProgressAsync(WTFMove(callback));
 }
 
-void MediaPlayer::setSize(const IntSize& size)
-{ 
-    m_size = size;
-    m_private->setSize(size);
+void MediaPlayer::setPresentationSize(const IntSize& size)
+{
+    if (m_presentationSize == size)
+        return;
+
+    m_presentationSize = size;
+    m_private->setPresentationSize(size);
 }
 
 void MediaPlayer::setPageIsVisible(bool visible)
@@ -1371,10 +1374,11 @@ void MediaPlayer::setPrivateBrowsingMode(bool privateBrowsingMode)
 // Client callbacks.
 void MediaPlayer::networkStateChanged()
 {
+    if (m_private->networkState() >= MediaPlayer::NetworkState::FormatError)
+        m_lastErrorMessage = m_private->errorMessage();
     // If more than one media engine is installed and this one failed before finding metadata,
     // let the next engine try.
     if (m_private->networkState() >= MediaPlayer::NetworkState::FormatError && m_private->readyState() < MediaPlayer::ReadyState::HaveMetadata) {
-        m_lastErrorMessage = m_private->errorMessage();
         client().mediaPlayerEngineFailedToLoad();
         if (!m_activeEngineIdentifier
             && installedMediaEngines().size() > 1
@@ -1825,6 +1829,11 @@ void MediaPlayer::stopVideoFrameMetadataGathering()
 void MediaPlayer::renderVideoWillBeDestroyed()
 {
     m_private->renderVideoWillBeDestroyed();
+}
+
+void MediaPlayer::setShouldDisableHDR(bool shouldDisable)
+{
+    m_private->setShouldDisableHDR(shouldDisable);
 }
 
 void MediaPlayer::playerContentBoxRectChanged(const LayoutRect& rect)

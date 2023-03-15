@@ -164,6 +164,7 @@ public:
 #endif
 
     enum SeekState {
+        WaitingToSeek,
         Seeking,
         WaitingForAvailableFame,
         SeekCompleted,
@@ -239,7 +240,7 @@ private:
     void acceleratedRenderingStateChanged() override;
     void notifyActiveSourceBuffersChanged() override;
 
-    void playerContentBoxRectChanged(const LayoutRect&) final;
+    void setPresentationSize(const IntSize&) final;
 
     void updateDisplayLayerAndDecompressionSession();
 
@@ -297,6 +298,8 @@ private:
 
     bool shouldEnsureLayer() const;
 
+    void setShouldDisableHDR(bool) final;
+
     friend class MediaSourcePrivateAVFObjC;
 
     struct PendingSeek {
@@ -344,11 +347,12 @@ private:
     MediaPlayer::NetworkState m_networkState;
     MediaPlayer::ReadyState m_readyState;
     bool m_readyStateIsWaitingForAvailableFrame { false };
+    MediaTime m_mediaTimeDuration { MediaTime::invalidTime() };
     MediaTime m_lastSeekTime;
     FloatSize m_naturalSize;
     double m_rate;
     bool m_playing;
-    bool m_seeking;
+    bool m_synchronizerSeeking;
     SeekState m_seekCompleted { SeekCompleted };
     mutable bool m_loadingProgressed;
 #if !HAVE(AVSAMPLEBUFFERDISPLAYLAYER_COPYDISPLAYEDPIXELBUFFER)

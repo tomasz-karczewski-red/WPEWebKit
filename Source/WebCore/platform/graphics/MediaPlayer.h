@@ -293,6 +293,8 @@ public:
 
     virtual bool mediaPlayerPrefersSandboxedParsing() const { return false; }
 
+    virtual bool mediaPlayerShouldDisableHDR() const { return false; }
+
 #if !RELEASE_LOG_DISABLED
     virtual const void* mediaPlayerLogIdentifier() { return nullptr; }
     virtual const Logger& mediaPlayerLogger() = 0;
@@ -353,8 +355,8 @@ public:
     bool hasVideo() const;
     bool hasAudio() const;
 
-    IntSize size() const { return m_size; }
-    void setSize(const IntSize& size);
+    IntSize presentationSize() const { return m_presentationSize; }
+    void setPresentationSize(const IntSize& size);
 
     bool load(const URL&, const ContentType&, const String& keySystem);
 #if ENABLE(MEDIA_SOURCE)
@@ -713,6 +715,9 @@ public:
 
     void renderVideoWillBeDestroyed();
 
+    void setShouldDisableHDR(bool);
+    bool shouldDisableHDR() const { return client().mediaPlayerShouldDisableHDR(); }
+
 private:
     MediaPlayer(MediaPlayerClient&);
     MediaPlayer(MediaPlayerClient&, MediaPlayerEnums::MediaEngineIdentifier);
@@ -734,7 +739,7 @@ private:
     String m_keySystem;
     std::optional<MediaPlayerEnums::MediaEngineIdentifier> m_activeEngineIdentifier;
     std::optional<MediaTime> m_pendingSeekRequest;
-    IntSize m_size;
+    IntSize m_presentationSize;
     Preload m_preload { Preload::Auto };
     double m_volume { 1 };
     bool m_pageIsVisible { false };
