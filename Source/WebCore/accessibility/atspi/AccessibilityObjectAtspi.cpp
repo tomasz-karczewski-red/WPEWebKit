@@ -150,9 +150,9 @@ void AccessibilityObjectAtspi::elementDestroyed()
     AccessibilityAtspi::singleton().unregisterObject(*this);
 }
 
-static unsigned atspiRole(AccessibilityRole role)
+static unsigned atspiRole(AXCoreObject* coreObject)
 {
-    switch (role) {
+    switch (coreObject->roleValue()) {
     case AccessibilityRole::Annotation:
     case AccessibilityRole::ApplicationAlert:
         return Atspi::Role::Notification;
@@ -312,7 +312,13 @@ static unsigned atspiRole(AccessibilityRole role)
     case AccessibilityRole::UserInterfaceTooltip:
         return Atspi::Role::ToolTip;
     case AccessibilityRole::WebArea:
-        return Atspi::Role::DocumentWeb;
+    {
+        WebCore::Frame *frame = coreObject->frame();
+        if (frame)
+           return frame->WebCore::Frame::isMainFrame() ? Atspi::Role::DocumentWeb; : Atspi::Role::DocumentFrame;
+        else
+           return Atspi::Role::DocumentWeb;;
+    }
     case AccessibilityRole::WebApplication:
         return Atspi::Role::Embedded;
     case AccessibilityRole::ApplicationLog:
@@ -1255,7 +1261,7 @@ unsigned AccessibilityObjectAtspi::role() const
     if (auto effective = effectiveRole())
         return *effective;
 
-    return atspiRole(m_coreObject->roleValue());
+    return atspiRole(m_coreObject);
 }
 
 String AccessibilityObjectAtspi::effectiveRoleName() const
