@@ -1753,6 +1753,10 @@ void AccessibilityNodeObject::visibleText(Vector<AccessibilityText>& textOrder) 
     case AccessibilityRole::RadioButton:
     case AccessibilityRole::Switch:
     case AccessibilityRole::Tab:
+    case AccessibilityRole::Div:
+    case AccessibilityRole::Cell:
+    case AccessibilityRole::GridCell:
+    case AccessibilityRole::Caption:
         useTextUnderElement = true;
         break;
     default:
@@ -1777,6 +1781,18 @@ void AccessibilityNodeObject::visibleText(Vector<AccessibilityText>& textOrder) 
         String text = textUnderElement(mode);
         if (!text.isEmpty())
             textOrder.append(AccessibilityText(text, AccessibilityTextSource::Children));
+    }
+
+    if(textOrder.size() == 0 && this->isTableRow()) {
+        AccessibilityObject* axObject = previousSibling();
+        if (axObject && axObject->isHeading()) {
+            AccessibilityTextUnderElementMode mode;
+            mode.includeFocusableContent = true;
+            String text = axObject->textUnderElement(mode);
+            if (!text.isEmpty()) {
+                textOrder.append(AccessibilityText(text, AccessibilityTextSource::Children));
+            }
+        }
     }
 }
 
