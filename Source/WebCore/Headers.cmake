@@ -321,6 +321,15 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     Modules/push-api/PushSubscriptionData.h
     Modules/push-api/PushSubscriptionIdentifier.h
 
+    Modules/speech/DOMWindowSpeechSynthesis.h
+    Modules/speech/SpeechSynthesisErrorCode.h
+    Modules/speech/SpeechSynthesisErrorEvent.h
+    Modules/speech/SpeechSynthesisErrorEventInit.h
+    Modules/speech/SpeechSynthesisEvent.h
+    Modules/speech/SpeechSynthesisEventInit.h
+    Modules/speech/SpeechSynthesis.h
+    Modules/speech/SpeechSynthesisUtterance.h
+    Modules/speech/SpeechSynthesisVoice.h
     Modules/speech/SpeechRecognitionCaptureSource.h
     Modules/speech/SpeechRecognitionCaptureSourceImpl.h
     Modules/speech/SpeechRecognitionConnection.h
