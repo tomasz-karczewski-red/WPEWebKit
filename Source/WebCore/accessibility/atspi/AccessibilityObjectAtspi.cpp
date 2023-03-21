@@ -315,7 +315,7 @@ static unsigned atspiRole(AXCoreObject* coreObject)
     {
         WebCore::Frame *frame = coreObject->frame();
         if (frame)
-           return frame->WebCore::Frame::isMainFrame() ? Atspi::Role::DocumentWeb; : Atspi::Role::DocumentFrame;
+           return frame->WebCore::Frame::isMainFrame() ? Atspi::Role::DocumentWeb : Atspi::Role::DocumentFrame;
         else
            return Atspi::Role::DocumentWeb;;
     }
