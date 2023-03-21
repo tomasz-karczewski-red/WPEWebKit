@@ -11032,6 +11032,48 @@ void WebPageProxy::speechSynthesisResume(CompletionHandler<void()>&& completionH
     speechSynthesisData().speakingResumedCompletionHandler = WTFMove(completionHandler);
     speechSynthesisData().synthesizer->resume();
 }
+
+void WebPageProxy::didStartSpeaking(WebCore::PlatformSpeechSynthesisUtterance&)
+{
+    if (speechSynthesisData().speakingStartedCompletionHandler)
+        speechSynthesisData().speakingStartedCompletionHandler();
+}
+
+void WebPageProxy::didFinishSpeaking(WebCore::PlatformSpeechSynthesisUtterance&)
+{
+    if (speechSynthesisData().speakingFinishedCompletionHandler)
+        speechSynthesisData().speakingFinishedCompletionHandler();
+}
+
+void WebPageProxy::didPauseSpeaking(WebCore::PlatformSpeechSynthesisUtterance&)
+{
+    if (speechSynthesisData().speakingPausedCompletionHandler)
+        speechSynthesisData().speakingPausedCompletionHandler();
+}
+
+void WebPageProxy::didResumeSpeaking(WebCore::PlatformSpeechSynthesisUtterance&)
+{
+    if (speechSynthesisData().speakingResumedCompletionHandler)
+        speechSynthesisData().speakingResumedCompletionHandler();
+}
+
+void WebPageProxy::speakingErrorOccurred(WebCore::PlatformSpeechSynthesisUtterance&, std::optional<WebCore::SpeechSynthesisErrorCode> error)
+{
+    if (!error)
+        send(Messages::WebPage::SpeakingErrorOccurred(std::nullopt));
+    else
+        send(Messages::WebPage::SpeakingErrorOccurred(static_cast<uint8_t>(*error)));
+}
+
+void WebPageProxy::boundaryEventOccurred(WebCore::PlatformSpeechSynthesisUtterance&, WebCore::SpeechBoundary speechBoundary, unsigned charIndex, unsigned charLength)
+{
+    send(Messages::WebPage::BoundaryEventOccurred(speechBoundary == WebCore::SpeechBoundary::SpeechWordBoundary, charIndex, charLength));
+}
+
+void WebPageProxy::voicesDidChange()
+{
+    send(Messages::WebPage::VoicesDidChange());
+}
 #endif // ENABLE(SPEECH_SYNTHESIS)
 
 #if !PLATFORM(IOS_FAMILY)

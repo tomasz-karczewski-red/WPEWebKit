@@ -29,6 +29,8 @@
 #if ENABLE(SPEECH_SYNTHESIS)
 
 #include "PlatformSpeechSynthesisVoice.h"
+#include "SpeechSynthesisErrorCode.h"
+#include <optional>
 #include <wtf/Vector.h>
 
 #if PLATFORM(COCOA)
@@ -51,7 +53,7 @@ public:
     virtual void didFinishSpeaking(PlatformSpeechSynthesisUtterance&) = 0;
     virtual void didPauseSpeaking(PlatformSpeechSynthesisUtterance&) = 0;
     virtual void didResumeSpeaking(PlatformSpeechSynthesisUtterance&) = 0;
-    virtual void speakingErrorOccurred(PlatformSpeechSynthesisUtterance&) = 0;
+    virtual void speakingErrorOccurred(PlatformSpeechSynthesisUtterance&, std::optional<SpeechSynthesisErrorCode>) = 0;
     virtual void boundaryEventOccurred(PlatformSpeechSynthesisUtterance&, SpeechBoundary, unsigned charIndex, unsigned charLength) = 0;
     virtual void voicesDidChange() = 0;
 protected:
