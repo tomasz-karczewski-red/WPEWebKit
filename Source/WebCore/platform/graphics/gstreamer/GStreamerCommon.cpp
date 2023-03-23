@@ -348,10 +348,6 @@ void registerWebKitGStreamerElements()
         gst_element_register(nullptr, "webkitmediasrc", GST_RANK_PRIMARY, WEBKIT_TYPE_MEDIA_SRC);
 #endif
 
-#if ENABLE(SPEECH_SYNTHESIS)
-        gst_element_register(nullptr, "webkitflitesrc", GST_RANK_NONE, WEBKIT_TYPE_FLITE_SRC);
-#endif
-
 #if ENABLE(VIDEO)
         gst_element_register(0, "webkitwebsrc", GST_RANK_PRIMARY + 100, WEBKIT_TYPE_WEB_SRC);
         gst_element_register(0, "webkitdmabufvideosink", GST_RANK_NONE, WEBKIT_TYPE_DMABUF_VIDEO_SINK);
