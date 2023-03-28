@@ -46,6 +46,7 @@ public:
     virtual ~TextureMapperPlatformLayerProxyDMABuf();
 
     bool isDMABufBased() const override { return true; }
+    bool isEmpty() const override { return !m_committedLayer; }
 
     WEBCORE_EXPORT void activateOnCompositingThread(Compositor*, TextureMapperLayer*) override;
     WEBCORE_EXPORT void invalidate() override;

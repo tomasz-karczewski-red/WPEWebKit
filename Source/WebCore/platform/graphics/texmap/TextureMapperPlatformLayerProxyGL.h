@@ -48,6 +48,7 @@ public:
     virtual ~TextureMapperPlatformLayerProxyGL();
 
     bool isGLBased() const override { return true; }
+    bool isEmpty() const override { return !m_currentBuffer; }
 
     WEBCORE_EXPORT void activateOnCompositingThread(Compositor*, TextureMapperLayer*) override;
     WEBCORE_EXPORT void invalidate() override;

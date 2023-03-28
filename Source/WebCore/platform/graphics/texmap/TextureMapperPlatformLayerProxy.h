@@ -50,6 +50,7 @@ public:
 
     virtual bool isGLBased() const { return false; }
     virtual bool isDMABufBased() const { return false; }
+    virtual bool isEmpty() const = 0;
 
     Lock& lock() WTF_RETURNS_LOCK(m_lock) { return m_lock; }
     bool isActive();
