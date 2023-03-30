@@ -4191,7 +4191,7 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 #endif
     settings.setPitchCorrectionAlgorithm(static_cast<MediaPlayerEnums::PitchCorrectionAlgorithm>(store.getUInt32ValueForKey(WebPreferencesKey::pitchCorrectionAlgorithmKey())));
 
-    DatabaseManager::singleton().setIsAvailable(store.getBoolValueForKey(WebPreferencesKey::databasesEnabledKey()));
+    DatabaseManager::singleton().setIsAvailable(settings.databasesEnabled());
 
     m_tabToLinks = store.getBoolValueForKey(WebPreferencesKey::tabsToLinksKey());
 
