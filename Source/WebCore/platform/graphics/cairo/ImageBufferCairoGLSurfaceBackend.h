@@ -24,6 +24,7 @@ public:
     virtual ~ImageBufferCairoGLSurfaceBackend();
 
     RefPtr<GraphicsLayerContentsDisplayDelegate> layerContentsDisplayDelegate() const final;
+    bool copyToPlatformTexture(GraphicsContextGL&, GCGLenum, PlatformGLObject, GCGLenum, bool, bool) const final;
 
 private:
     ImageBufferCairoGLSurfaceBackend(const Parameters&, const std::array<uint32_t, 2>&, const std::array<RefPtr<cairo_surface_t>, 2>&);
