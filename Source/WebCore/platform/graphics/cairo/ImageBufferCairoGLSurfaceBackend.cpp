@@ -4,6 +4,7 @@
 #if ENABLE(ACCELERATED_2D_CANVAS)
 
 #include "GLContextEGL.h"
+#include "PixelBuffer.h"
 #include "TextureMapperPlatformLayerBuffer.h"
 #include "TextureMapperPlatformLayerProxyGL.h"
 #include <cairo-gl.h>
@@ -29,6 +30,19 @@ static cairo_device_t* cairoDevice()
         });
 
     return s_device;
+}
+
+static RefPtr<cairo_surface_t>
+cairoGLSurfaceCopyToImageSurface(cairo_surface_t* surface)
+{
+    auto copy = adoptRef(cairo_image_surface_create(CAIRO_FORMAT_ARGB32, cairo_gl_surface_get_width(surface), cairo_gl_surface_get_height(surface)));
+
+    auto cr = adoptRef(cairo_create(copy.get()));
+    cairo_set_operator(cr.get(), CAIRO_OPERATOR_SOURCE);
+    cairo_set_source_surface(cr.get(), surface, 0, 0);
+    cairo_paint(cr.get());
+
+    return copy;
 }
 
 class ImageBufferCairoGLDisplayDelegate final : public GraphicsLayerContentsDisplayDelegate {
@@ -165,6 +179,55 @@ void ImageBufferCairoGLSurfaceBackend::swapBuffersIfNeeded()
     if (previousActiveContext)
         previousActiveContext->makeContextCurrent();
 }
+
+unsigned ImageBufferCairoGLSurfaceBackend::bytesPerRow() const
+{
+    IntSize backendSize = calculateBackendSize(m_parameters);
+    return calculateBytesPerRow(backendSize);
+}
+
+RefPtr<PixelBuffer> ImageBufferCairoGLSurfaceBackend::getPixelBuffer(const PixelBufferFormat& outputFormat, const IntRect& srcRect, const ImageBufferAllocator& allocator) const
+{
+    auto surface = cairoGLSurfaceCopyToImageSurface(m_surfaces[0].get());
+    return ImageBufferBackend::getPixelBuffer(outputFormat, srcRect, cairo_image_surface_get_data(surface.get()), allocator);
+}
+
+void ImageBufferCairoGLSurfaceBackend::putPixelBuffer(const PixelBuffer& pixelBuffer, const IntRect& srcRect, const IntPoint& destPoint, AlphaPremultiplication destFormat)
+{
+    // Create a new image surface and put the data there. Then copy its contents to the original gl surface in the specified rect.
+    auto surface = adoptRef(cairo_image_surface_create(CAIRO_FORMAT_ARGB32, cairo_gl_surface_get_width(m_surfaces[0].get()), cairo_gl_surface_get_height(m_surfaces[0].get())));
+    IntRect srcRectScaled = toBackendCoordinates(srcRect);
+    IntPoint destPointScaled = toBackendCoordinates(destPoint);
+    ImageBufferBackend::putPixelBuffer(pixelBuffer, srcRect, destPoint, destFormat, cairo_image_surface_get_data(surface.get()));
+    cairo_surface_mark_dirty_rectangle(surface.get(), destPointScaled.x(), destPointScaled.y(), srcRectScaled.width(), srcRectScaled.height());
+
+    auto cr = adoptRef(cairo_create(m_surfaces[0].get()));
+    cairo_set_operator(cr.get(), CAIRO_OPERATOR_SOURCE);
+    cairo_set_source_surface(cr.get(), surface.get(), destPointScaled.x(), destPointScaled.y());
+    cairo_rectangle(cr.get(), destPointScaled.x(), destPointScaled.y(), srcRectScaled.width(), srcRectScaled.height());
+    cairo_fill(cr.get());
+}
+
+IntSize ImageBufferCairoGLSurfaceBackend::backendSize() const
+{
+    return IntSize { cairo_gl_surface_get_width(m_surfaces[0].get()), cairo_gl_surface_get_height(m_surfaces[0].get()) };
+}
+
+RefPtr<NativeImage> ImageBufferCairoGLSurfaceBackend::copyNativeImage(BackingStoreCopy copyBehavior) const
+{
+    switch (copyBehavior) {
+    case CopyBackingStore: {
+        auto copy = cairoGLSurfaceCopyToImageSurface(m_surfaces[0].get());
+        return NativeImage::create(WTFMove(copy));
+    }
+    case DontCopyBackingStore:
+        return NativeImage::create(RefPtr { m_surface.get() });
+    }
+
+    ASSERT_NOT_REACHED();
+    return nullptr;
+}
+
 
 } // namespace WebCore
 
