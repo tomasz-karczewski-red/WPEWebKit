@@ -27,6 +27,7 @@
 #include "config.h"
 #include "BitmapTexturePool.h"
 #include <numeric>
+#include <wtf/text/StringToIntegerConversion.h>
 
 #if USE(TEXTURE_MAPPER_GL)
 #include "BitmapTextureGL.h"
@@ -81,9 +82,11 @@ void BitmapTexturePool::releaseUnusedTexturesTimerFired()
     static uint64_t storedPixelsLimit = defaultStoredPixelsLimit;
     std::once_flag onceFlag;
     std::call_once(onceFlag, []() {
-        String envString(getenv("WPE_BITMAP_TEXTURE_POOL_PIXEL_LIMIT"));
-        if (!envString.isEmpty() && envString.toUInt64() > 0)
-            storedPixelsLimit = envString.toUInt64();
+        String envString = String::fromLatin1(getenv("WPE_BITMAP_TEXTURE_POOL_PIXEL_LIMIT"));
+        if (!envString.isEmpty()) {
+            uint64_t limit = parseInteger<uint64_t>(envString).value_or(0);
+            storedPixelsLimit = limit > 0 ? limit : defaultStoredPixelsLimit;
+        }
     });
     const uint64_t storedPixelsNumber = std::accumulate(
         m_textures.begin(),
