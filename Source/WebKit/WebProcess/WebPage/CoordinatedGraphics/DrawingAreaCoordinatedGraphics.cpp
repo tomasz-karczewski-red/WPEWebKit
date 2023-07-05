@@ -35,6 +35,7 @@
 #include "WebPage.h"
 #include "WebPageCreationParameters.h"
 #include "WebPreferencesKeys.h"
+#include <WebCore/DeprecatedGlobalSettings.h>
 #include <WebCore/Frame.h>
 #include <WebCore/FrameView.h>
 #include <WebCore/GraphicsContext.h>
@@ -261,6 +262,10 @@ void DrawingAreaCoordinatedGraphics::updatePreferences(const WebPreferencesStore
     // Fixed position elements need to be composited and create stacking contexts
     // in order to be scrolled by the ScrollingCoordinator.
     settings.setAcceleratedCompositingForFixedPositionEnabled(settings.acceleratedCompositingEnabled());
+
+    // Disable offscreenCanvas APIs when nonCompositedWebGL is enabled.
+    DeprecatedGlobalSettings::setOffscreenCanvasEnabled(!store.getBoolValueForKey(WebPreferencesKey::nonCompositedWebGLEnabledKey()));
+    DeprecatedGlobalSettings::setOffscreenCanvasInWorkersEnabled(!store.getBoolValueForKey(WebPreferencesKey::nonCompositedWebGLEnabledKey()));
 
     m_alwaysUseCompositing = settings.acceleratedCompositingEnabled() && settings.forceCompositingMode();
 
