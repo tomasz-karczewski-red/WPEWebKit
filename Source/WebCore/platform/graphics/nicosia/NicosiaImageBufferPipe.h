@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "GraphicsContextGLOpenGL.h"
 #include "ImageBufferPipe.h"
 #include "NicosiaContentLayerTextureMapperImpl.h"
 
@@ -56,6 +57,8 @@ public:
 
     // ImageBufferPipe::Source overrides.
     void handle(RefPtr<WebCore::ImageBuffer>&&) final;
+    void swapBuffers() final;
+    void setGraphicsContextGL(WebCore::GraphicsContextGL*) final;
 
     // ContentLayerTextureMapperImpl::Client overrides.
     void swapBuffersIfNeeded() override;
@@ -66,6 +69,7 @@ private:
 
     mutable Lock m_imageBufferLock;
     RefPtr<WebCore::ImageBuffer> m_imageBuffer;
+    WebCore::GraphicsContextGLOpenGL* m_context;
 };
 
 class NicosiaImageBufferPipe final : public WebCore::ImageBufferPipe {

@@ -39,6 +39,7 @@
 #if USE(NICOSIA)
 namespace Nicosia {
 class GCGLLayer;
+class NicosiaImageBufferPipeSource;
 }
 #endif
 
@@ -574,6 +575,7 @@ protected:
 
 #if USE(NICOSIA)
     friend class Nicosia::GCGLLayer;
+    friend class Nicosia::NicosiaImageBufferPipeSource;
     std::unique_ptr<Nicosia::GCGLLayer> m_nicosiaLayer;
 #elif USE(TEXTURE_MAPPER)
     friend class TextureMapperGCGLPlatformLayer;
