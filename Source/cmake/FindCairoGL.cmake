@@ -30,6 +30,9 @@
 
 find_package(PkgConfig QUIET)
 pkg_check_modules(CAIROGL cairo-glesv2)
+if (NOT CAIROGL_FOUND)
+    pkg_check_modules(CAIROGL cairo-glesv3)
+endif()
 
 if (CAIROGL_FOUND)
 # At the moment CairoGL does not add any extra cflags and libraries, so we can
