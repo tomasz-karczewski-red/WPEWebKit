@@ -34,6 +34,7 @@
 #include <wtf/MemoryFootprint.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/RAMSize.h>
+#include <wtf/text/StringToIntegerConversion.h>
 
 namespace WTF {
 
@@ -120,9 +121,23 @@ MemoryPressureHandler::MemoryPressureHandler()
 #endif
 
     // If this is the WebProcess, Check whether the env var WPE_POLL_MAX_MEMORY_GPU_FILE exists, containing the file
-    // that we need to poll to get the video memory used.
-    if (isWebProcess())
+    // that we need to poll to get the video memory used, and whether WPE_POLL_MAX_MEMORY_GPU exists, overriding the
+    // limit for video memory set by the API.
+    if (isWebProcess()) {
         s_GPUMemoryFile = String::fromLatin1(getenv("WPE_POLL_MAX_MEMORY_GPU_FILE"));
+        String s = String::fromLatin1(getenv("WPE_POLL_MAX_MEMORY_GPU"));
+        if (!s.isEmpty()) {
+            String value = s.stripWhiteSpace().convertToLowercaseWithoutLocale();
+            size_t units = 1;
+            if (value.endsWith('k'))
+                units = KB;
+            else if (value.endsWith('m'))
+                units = MB;
+            if (units != 1)
+                value = value.substring(0, value.length() - 1);
+            m_configuration.baseThresholdVideo = parseInteger<size_t>(value).value_or(0) * units;
+        }
+    }
 }
 
 void MemoryPressureHandler::setShouldUsePeriodicMemoryMonitor(bool use)
