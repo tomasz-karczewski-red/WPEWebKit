@@ -195,10 +195,7 @@ private:
 
     void didStartProvisionalLoadForFrame(WebPage&, WebFrame& frame, RefPtr<API::Object>&) override
     {
-        auto* webKitFrame = webkitFrameGet(&frame);
-        if (!webKitFrame && !frame.isMainFrame())
-            return;
-
+        auto* webKitFrame = webkitFrameGetOrCreate(&frame);
         const auto uri = getDocumentLoaderURL(frame.coreFrame()->loader().provisionalDocumentLoader());
 
         if (webKitFrame)
