@@ -1713,7 +1713,7 @@ static void webkit_settings_class_init(WebKitSettingsClass* klass)
      *
      */
     sObjProperties[PROP_ALLOW_MOVE_TO_SUSPEND_ON_WINDOW_CLOSE] = g_param_spec_boolean(
-        "allow-scripts-to-close-windows",
+        "allow-move-to-suspend-on-window-close",
         _("Allow move to suspend on window.close()"),
         _("Allow to suspend browser instead of closing window on window.close()"),
         FALSE,
