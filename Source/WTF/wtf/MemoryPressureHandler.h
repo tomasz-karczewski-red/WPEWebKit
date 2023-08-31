@@ -224,8 +224,8 @@ public:
         std::optional<double> killThresholdFraction;
         Seconds pollInterval;
     };
-    void setConfiguration(Configuration&& configuration) { m_configuration = WTFMove(configuration); }
-    void setConfiguration(const Configuration& configuration) { m_configuration = configuration; }
+    void setConfiguration(Configuration&& configuration);
+    void setConfiguration(const Configuration& configuration);
 
     WTF_EXPORT_PRIVATE void releaseMemory(Critical, Synchronous = Synchronous::No);
 

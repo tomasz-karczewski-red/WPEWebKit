@@ -53,6 +53,7 @@ static const Seconds s_pollInterval = 30_s;
 // This file contains the amount of video memory used, and will be filled by some other
 // platform component. It's a text file containing an unsigned integer value.
 static String s_GPUMemoryFile;
+static ssize_t s_envBaseThresholdVideo = 0;
 
 static bool isWebProcess()
 {
@@ -135,7 +136,9 @@ MemoryPressureHandler::MemoryPressureHandler()
                 units = MB;
             if (units != 1)
                 value = value.substring(0, value.length() - 1);
-            m_configuration.baseThresholdVideo = parseInteger<size_t>(value).value_or(0) * units;
+            s_envBaseThresholdVideo = parseInteger<size_t>(value).value_or(0) * units;
+            if (s_envBaseThresholdVideo)
+                m_configuration.baseThresholdVideo = s_envBaseThresholdVideo;
         }
     }
 }
@@ -346,6 +349,20 @@ void MemoryPressureHandler::endSimulatedMemoryPressure()
         return;
     m_isSimulatingMemoryPressure = false;
     memoryPressureStatusChanged();
+}
+
+void MemoryPressureHandler::setConfiguration(Configuration&& configuration)
+{
+    m_configuration = WTFMove(configuration);
+    if (s_envBaseThresholdVideo)
+        m_configuration.baseThresholdVideo = s_envBaseThresholdVideo;
+}
+
+void MemoryPressureHandler::setConfiguration(const Configuration& configuration)
+{
+    m_configuration = configuration;
+    if (s_envBaseThresholdVideo)
+        m_configuration.baseThresholdVideo = s_envBaseThresholdVideo;
 }
 
 void MemoryPressureHandler::releaseMemory(Critical critical, Synchronous synchronous)
