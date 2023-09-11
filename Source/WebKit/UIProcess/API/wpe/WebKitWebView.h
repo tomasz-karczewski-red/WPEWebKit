@@ -558,6 +558,10 @@ webkit_web_view_get_tls_info                         (WebKitWebView             
 WEBKIT_API WebKitUserContentManager *
 webkit_web_view_get_user_content_manager             (WebKitWebView             *web_view);
 
+WEBKIT_API void
+webkit_web_view_send_memory_pressure_event           (WebKitWebView               *web_view,
+                                                      gboolean                    critical);
+
 WEBKIT_API gboolean
 webkit_web_view_is_editable                          (WebKitWebView             *web_view);
 
