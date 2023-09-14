@@ -232,7 +232,7 @@ if (!window.InspectorFrontendHost) {
         save(saveDatas, forceSaveAs)
         {
             for (let saveData of saveDatas) {
-                var blob = new Blob([saveData.content], {type: "octet/stream"});
+                var blob = WI.BlobUtilities.blobForContent(saveData.content, saveData.base64Encoded, "octet/stream");
                 var blobURL = window.URL.createObjectURL(blob);
 
                 var a = document.createElement("a");
@@ -244,7 +244,7 @@ if (!window.InspectorFrontendHost) {
                 // that will remove target file name ('download' attr)
                 a.click();
                 setTimeout(()=>{
-                    window.URL.revokeObjectURL(blob);
+                    window.URL.revokeObjectURL(blobURL);
                 }, 0);
             }
         }
