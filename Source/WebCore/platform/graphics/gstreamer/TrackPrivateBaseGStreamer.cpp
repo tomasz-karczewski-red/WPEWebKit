@@ -81,6 +81,8 @@ TrackPrivateBaseGStreamer::TrackPrivateBaseGStreamer(TrackType type, TrackPrivat
     setPad(WTFMove(pad));
     ASSERT(m_pad);
 
+    m_id = AtomString(trackIdFromPadStreamStartOrUniqueID(type, index, m_pad));
+
     // We can't call notifyTrackOfTagsChanged() directly, because we need tagsChanged() to setup m_tags.
     tagsChanged();
 }
@@ -110,7 +112,10 @@ void TrackPrivateBaseGStreamer::setPad(GRefPtr<GstPad>&& pad)
 
     m_pad = WTFMove(pad);
     m_bestUpstreamPad = findBestUpstreamPad(m_pad);
-    m_id = generateUniquePlaybin2StreamID(m_type, m_index);
+    m_id = AtomString(trackIdFromPadStreamStartOrUniqueID(m_type, m_index, m_pad));
+
+    if (!m_bestUpstreamPad)
+        return;
 
     m_eventProbe = gst_pad_add_probe(m_bestUpstreamPad.get(), GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM, [] (GstPad*, GstPadProbeInfo* info, gpointer userData) -> GstPadProbeReturn {
         auto* track = static_cast<TrackPrivateBaseGStreamer*>(userData);
@@ -164,7 +169,7 @@ void TrackPrivateBaseGStreamer::tagsChanged()
         do {
             tagEvent = adoptGRef(gst_pad_get_sticky_event(m_bestUpstreamPad.get(), GST_EVENT_TAG, i));
             if (tagEvent) {
-                GstTagList* tagsFromEvent;
+                GstTagList* tagsFromEvent = nullptr;
                 gst_event_parse_tag(tagEvent.get(), &tagsFromEvent);
                 tags = adoptGRef(gst_tag_list_copy(tagsFromEvent));
                 String language;
@@ -246,6 +251,9 @@ void TrackPrivateBaseGStreamer::notifyTrackOfTagsChanged()
 
 void TrackPrivateBaseGStreamer::notifyTrackOfStreamChanged()
 {
+    if (!m_pad)
+        return;
+
     GUniquePtr<char> streamId(gst_pad_get_stream_id(m_pad.get()));
     if (!streamId)
         return;
@@ -259,6 +267,81 @@ void TrackPrivateBaseGStreamer::streamChanged()
     m_notifier->notify(MainThreadNotification::StreamChanged, [this] {
         notifyTrackOfStreamChanged();
     });
+}
+
+void TrackPrivateBaseGStreamer::installUpdateConfigurationHandlers()
+{
+    if (m_pad) {
+        g_signal_connect_swapped(m_pad.get(), "notify::caps", G_CALLBACK(+[](TrackPrivateBaseGStreamer* track) {
+            track->m_taskQueue.enqueueTask([track]() {
+                if (!track->m_pad)
+                    return;
+                auto caps = adoptGRef(gst_pad_get_current_caps(track->m_pad.get()));
+                if (!caps)
+                    return;
+                track->updateConfigurationFromCaps();
+            });
+        }), this);
+        g_signal_connect_swapped(m_pad.get(), "notify::tags", G_CALLBACK(+[](TrackPrivateBaseGStreamer* track) {
+            track->m_taskQueue.enqueueTask([track]() {
+                if (!track->m_pad)
+                    return;
+                track->updateConfigurationFromTags();
+            });
+        }), this);
+    } else if (m_stream) {
+        g_signal_connect_swapped(m_stream.get(), "notify::caps", G_CALLBACK(+[](TrackPrivateBaseGStreamer* track) {
+            track->m_taskQueue.enqueueTask([track]() {
+                track->updateConfigurationFromCaps();
+            });
+        }), this);
+        g_signal_connect_swapped(m_stream.get(), "notify::tags", G_CALLBACK(+[](TrackPrivateBaseGStreamer* track) {
+            if (isMainThread())
+                track->updateConfigurationFromTags();
+            else
+                track->m_taskQueue.enqueueTask([track]() {
+                    track->updateConfigurationFromTags();
+                });
+        }), this);
+    }
+}
+
+String TrackPrivateBaseGStreamer::trackIdFromPadStreamStartOrUniqueID(TrackType type, unsigned index, const GRefPtr<GstPad>& pad)
+{
+    String streamId = nullString();
+    if (!pad)
+        return generateUniquePlaybin2StreamID(type, index);
+
+    auto streamStart = adoptGRef(gst_pad_get_sticky_event(pad.get(), GST_EVENT_STREAM_START, 0));
+    if (!streamStart)
+        return generateUniquePlaybin2StreamID(type, index);
+
+    const gchar* streamIdAsCharacters;
+    gst_event_parse_stream_start(streamStart.get(), &streamIdAsCharacters);
+
+    if (!streamIdAsCharacters)
+        return generateUniquePlaybin2StreamID(type, index);
+
+    StringView streamIdView = StringView::fromLatin1(streamIdAsCharacters);
+    size_t position = streamIdView.find('/');
+    if (position == notFound || position + 1 == streamIdView.length())
+        return generateUniquePlaybin2StreamID(type, index);
+
+    return streamIdView.substring(position + 1).toString();
+}
+
+GRefPtr<GstTagList> TrackPrivateBaseGStreamer::getAllTags(const GRefPtr<GstPad>& pad)
+{
+    auto allTags = adoptGRef(gst_tag_list_new_empty());
+    GstTagList* taglist = nullptr;
+    for (guint i = 0;; i++) {
+        GRefPtr<GstEvent> tagsEvent = adoptGRef(gst_pad_get_sticky_event(pad.get(), GST_EVENT_TAG, i));
+        if (!tagsEvent)
+            break;
+        gst_event_parse_tag(tagsEvent.get(), &taglist);
+        allTags = adoptGRef(gst_tag_list_merge(allTags.get(), taglist, GST_TAG_MERGE_APPEND));
+    }
+    return allTags;
 }
 
 } // namespace WebCore

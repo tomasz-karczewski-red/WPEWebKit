@@ -352,9 +352,6 @@ protected:
     void invalidateCachedPosition() const;
 
     static void sourceSetupCallback(MediaPlayerPrivateGStreamer*, GstElement*);
-    static void videoChangedCallback(MediaPlayerPrivateGStreamer*);
-    static void audioChangedCallback(MediaPlayerPrivateGStreamer*);
-    static void textChangedCallback(MediaPlayerPrivateGStreamer*);
 
     void timeChanged();
     void loadingFailed(MediaPlayer::NetworkState, MediaPlayer::ReadyState = MediaPlayer::ReadyState::HaveNothing, bool forceNotifications = false);

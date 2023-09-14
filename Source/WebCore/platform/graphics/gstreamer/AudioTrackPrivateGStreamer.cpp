@@ -40,6 +40,7 @@ AudioTrackPrivateGStreamer::AudioTrackPrivateGStreamer(WeakPtr<MediaPlayerPrivat
     : TrackPrivateBaseGStreamer(TrackPrivateBaseGStreamer::TrackType::Audio, this, index, WTFMove(pad), shouldHandleStreamStartEvent)
     , m_player(player)
 {
+    installUpdateConfigurationHandlers();
 }
 
 AudioTrackPrivateGStreamer::AudioTrackPrivateGStreamer(WeakPtr<MediaPlayerPrivateGStreamer> player, unsigned index, GstStream* stream)
@@ -54,16 +55,7 @@ AudioTrackPrivateGStreamer::AudioTrackPrivateGStreamer(WeakPtr<MediaPlayerPrivat
         gst_stream_set_stream_flags(m_stream.get(), static_cast<GstStreamFlags>(streamFlags | GST_STREAM_FLAG_SELECT));
     }
 
-    g_signal_connect_swapped(m_stream.get(), "notify::caps", G_CALLBACK(+[](AudioTrackPrivateGStreamer* track) {
-        track->m_taskQueue.enqueueTask([track]() {
-            track->updateConfigurationFromCaps();
-        });
-    }), this);
-    g_signal_connect_swapped(m_stream.get(), "notify::tags", G_CALLBACK(+[](AudioTrackPrivateGStreamer* track) {
-        track->m_taskQueue.enqueueTask([track]() {
-            track->updateConfigurationFromTags();
-        });
-    }), this);
+    installUpdateConfigurationHandlers();
 
     updateConfigurationFromCaps();
     updateConfigurationFromTags();
@@ -72,13 +64,21 @@ AudioTrackPrivateGStreamer::AudioTrackPrivateGStreamer(WeakPtr<MediaPlayerPrivat
 void AudioTrackPrivateGStreamer::updateConfigurationFromTags()
 {
     ASSERT(isMainThread());
-    if (!m_stream)
-        return;
+    GRefPtr<GstTagList> tags;
 
-    auto tags = adoptGRef(gst_stream_get_tags(m_stream.get()));
+    if (m_stream)
+        tags = adoptGRef(gst_stream_get_tags(m_stream.get()));
+    else if (m_pad)
+        tags = getAllTags(m_pad.get());
+
     unsigned bitrate;
     if (!tags || !gst_tag_list_get_uint(tags.get(), GST_TAG_BITRATE, &bitrate))
         return;
+
+    if (m_stream)
+        GST_DEBUG_OBJECT(m_stream.get(), "Setting bitrate to %u", bitrate);
+    else if (m_pad)
+        GST_DEBUG_OBJECT(m_pad.get(), "Setting bitrate to %u", bitrate);
 
     auto configuration = this->configuration();
     configuration.bitrate = bitrate;
@@ -88,10 +88,13 @@ void AudioTrackPrivateGStreamer::updateConfigurationFromTags()
 void AudioTrackPrivateGStreamer::updateConfigurationFromCaps()
 {
     ASSERT(isMainThread());
-    if (!m_stream)
-        return;
+    GRefPtr<GstCaps> caps;
 
-    auto caps = adoptGRef(gst_stream_get_caps(m_stream.get()));
+    if (m_stream)
+        caps = adoptGRef(gst_stream_get_caps(m_stream.get()));
+    else if (m_pad)
+        caps = adoptGRef(gst_pad_get_current_caps(m_pad.get()));
+
     if (!caps || !gst_caps_is_fixed(caps.get()))
         return;
 
