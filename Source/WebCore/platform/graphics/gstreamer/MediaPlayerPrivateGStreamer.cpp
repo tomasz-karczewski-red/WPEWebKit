@@ -2360,6 +2360,44 @@ void MediaPlayerPrivateGStreamer::configureElementPlatformQuirks(GstElement* ele
         characteristics.add({ ElementRuntimeCharacteristics::HasAudio });
     if (m_isLiveStream.value_or(false))
         characteristics.add({ ElementRuntimeCharacteristics::IsLiveStream });
+#if PLATFORM(AMLOGIC)
+    if (!g_strcmp0(G_OBJECT_TYPE_NAME(G_OBJECT(element)), "GstAmlHalAsink")) {
+        GST_INFO_OBJECT(pipeline(), "Set property disable-xrun to TRUE");
+        g_object_set(element, "disable-xrun", TRUE, nullptr);
+        if (hasVideo())
+            g_object_set(G_OBJECT(element), "wait-video", TRUE, nullptr);
+    }
+#endif
+
+#if PLATFORM(BROADCOM)
+    if (g_str_has_prefix(GST_ELEMENT_NAME(element), "brcmaudiosink")) {
+        const char* usePlaybin3 = g_getenv("WEBKIT_GST_USE_PLAYBIN3");
+        if (usePlaybin3 && !strcmp(usePlaybin3, "1")) {
+            GST_INFO_OBJECT(pipeline(), "Enable async mode for brcmaduiosink");
+            g_object_set(G_OBJECT(element), "async", TRUE, nullptr);
+        } else {
+            GST_INFO_OBJECT(pipeline(), "Skip enabling async mode for brcmaduiosink");
+        }
+    } else if (g_str_has_prefix(GST_ELEMENT_NAME(element), "brcmaudiodecoder")) {
+        if (m_isLiveStream.value_or(false)) {
+            // Limit BCM audio decoder buffering to 1sec so live progressive playback can start faster.
+            g_object_set(G_OBJECT(element), "limit_buffering_ms", 1000, nullptr);
+        }
+    }
+#if ENABLE(MEDIA_STREAM)
+    if (m_streamPrivate && !g_strcmp0(G_OBJECT_TYPE_NAME(G_OBJECT(element)), "GstBrcmPCMSink") && gstObjectHasProperty(element, "low_latency")) {
+        GST_DEBUG_OBJECT(pipeline(), "Set 'low_latency' in brcmpcmsink");
+        g_object_set(element, "low_latency", TRUE, "low_latency_max_queued_ms", 60, nullptr);
+    }
+#endif
+#endif
+
+#if ENABLE(MEDIA_STREAM)
+    if (m_streamPrivate && !g_strcmp0(G_OBJECT_TYPE_NAME(G_OBJECT(element)), "GstWesterosSink") && gstObjectHasProperty(element, "immediate-output")) {
+        GST_DEBUG_OBJECT(pipeline(), "Enable 'immediate-output' in WesterosSink");
+        g_object_set(element, "immediate-output", TRUE, nullptr);
+    }
+#endif
 
     GStreamerQuirksManager::singleton().configureElement(element, WTFMove(characteristics));
 }
