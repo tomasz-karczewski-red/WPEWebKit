@@ -224,7 +224,9 @@ void ImageBufferCairoGLSurfaceBackend::swapBuffersIfNeeded()
         ASSERT(is<TextureMapperPlatformLayerProxyGL>(proxy));
 
         Locker locker { proxy.lock() };
-        downcast<TextureMapperPlatformLayerProxyGL>(proxy).pushNextBuffer(makeUnique<TextureMapperPlatformLayerBuffer>(m_textures[1], backendSize, TextureMapperGL::ShouldBlend, GL_RGBA), false);
+        auto layerBuffer = makeUnique<TextureMapperPlatformLayerBuffer>(m_textures[1], backendSize, TextureMapperGL::ShouldBlend, GL_RGBA);
+        layerBuffer->addFenceSyncIfAvailable();
+        downcast<TextureMapperPlatformLayerProxyGL>(proxy).pushNextBuffer(WTFMove(layerBuffer), false);
     }
 
     if (previousActiveContext)

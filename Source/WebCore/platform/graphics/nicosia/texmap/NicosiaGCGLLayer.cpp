@@ -132,7 +132,9 @@ void GCGLLayer::swapBuffersIfNeeded()
         auto& proxy = downcast<Nicosia::ContentLayerTextureMapperImpl>(m_contentLayer->impl()).proxy();
         Locker locker { proxy.lock() };
         ASSERT(is<TextureMapperPlatformLayerProxyGL>(proxy));
-        downcast<TextureMapperPlatformLayerProxyGL>(proxy).pushNextBuffer(makeUnique<TextureMapperPlatformLayerBuffer>(m_context.m_compositorTexture, textureSize, flags, m_context.m_internalColorFormat), false);
+        auto layerBuffer = makeUnique<TextureMapperPlatformLayerBuffer>(m_context.m_compositorTexture, textureSize, flags, m_context.m_internalColorFormat);
+        layerBuffer->addFenceSyncIfAvailable();
+        downcast<TextureMapperPlatformLayerProxyGL>(proxy).pushNextBuffer(WTFMove(layerBuffer), false);
     }
 
     m_context.markLayerComposited();
