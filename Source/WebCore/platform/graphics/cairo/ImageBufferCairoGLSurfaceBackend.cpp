@@ -223,10 +223,8 @@ void ImageBufferCairoGLSurfaceBackend::swapBuffersIfNeeded()
         auto& proxy = downcast<Nicosia::ContentLayerTextureMapperImpl>(m_nicosiaLayer->impl()).proxy();
         ASSERT(is<TextureMapperPlatformLayerProxyGL>(proxy));
 
-        if (proxy.isEmpty()) {
-            Locker locker { proxy.lock() };
-            downcast<TextureMapperPlatformLayerProxyGL>(proxy).pushNextBuffer(makeUnique<TextureMapperPlatformLayerBuffer>(m_textures[1], backendSize, TextureMapperGL::ShouldBlend, GL_RGBA));
-        }
+        Locker locker { proxy.lock() };
+        downcast<TextureMapperPlatformLayerProxyGL>(proxy).pushNextBuffer(makeUnique<TextureMapperPlatformLayerBuffer>(m_textures[1], backendSize, TextureMapperGL::ShouldBlend, GL_RGBA), false);
     }
 
     if (previousActiveContext)
