@@ -759,7 +759,7 @@ void CoordinatedGraphicsLayer::updatePlatformLayer()
         // They won't request a composition with this new buffer, so we need to ensure that the composition is
         // triggered in case no other component does it.
         downcast<Nicosia::ContentLayerTextureMapperImpl>(m_nicosia.contentLayer->impl()).swapBuffersIfNeeded();
-        // m_nicosia.performLayerSync |= true;
+        m_nicosia.performLayerSync |= true;
     }
 #endif
 }
