@@ -44,11 +44,7 @@ namespace Nicosia {
 using namespace WebCore;
 
 static std::unique_ptr<GLContext> s_windowContext;
-
-static void terminateWindowContext()
-{
-    s_windowContext = nullptr;
-}
+static int s_windowContextRefCount = 0;
 
 std::unique_ptr<GCGLLayer> GCGLLayer::create(WebCore::GraphicsContextGLOpenGL& context)
 {
@@ -60,7 +56,6 @@ std::unique_ptr<GCGLLayer> GCGLLayer::create(WebCore::GraphicsContextGLOpenGL& c
     } else {
         if (!s_windowContext) {
             s_windowContext = GLContext::createContextForWindow(reinterpret_cast<GLNativeWindowType>(attributes.nativeWindowID), &PlatformDisplay::sharedDisplayForCompositing());
-            std::atexit(terminateWindowContext);
         }
         if (s_windowContext)
             return makeUnique<GCGLLayer>(context);
@@ -80,11 +75,21 @@ GCGLLayer::GCGLLayer(GraphicsContextGLOpenGL& context)
     : m_context(context)
     , m_contentLayer(Nicosia::ContentLayer::create(Nicosia::ContentLayerTextureMapperImpl::createFactory(*this)))
 {
+    ASSERT(s_windowContext);
+    s_windowContextRefCount++;
 }
 
 GCGLLayer::~GCGLLayer()
 {
     downcast<ContentLayerTextureMapperImpl>(m_contentLayer->impl()).invalidateClient();
+
+    if (m_context.contextAttributes().renderTarget != GraphicsContextGLRenderTarget::Offscreen) {
+        ASSERT(s_windowContext);
+        s_windowContextRefCount--;
+        if (!s_windowContextRefCount) {
+            s_windowContext = nullptr;
+        }
+    }
 }
 
 bool GCGLLayer::makeContextCurrent()
