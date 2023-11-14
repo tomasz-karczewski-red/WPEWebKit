@@ -145,49 +145,6 @@ RefPtr<GraphicsLayerContentsDisplayDelegate> ImageBufferCairoGLSurfaceBackend::l
     return m_layerContentsDisplayDelegate;
 }
 
-bool ImageBufferCairoGLSurfaceBackend::copyToPlatformTexture(GraphicsContextGL&, GCGLenum target, PlatformGLObject destinationTexture, GCGLenum internalFormat, bool premultiplyAlpha, bool flipY) const
-{
-    if (!premultiplyAlpha || flipY)
-        return false;
-
-    if (!m_textures[0])
-        return false;
-
-    GCGLenum bindTextureTarget;
-    switch (target) {
-    case GL_TEXTURE_2D:
-        bindTextureTarget = GL_TEXTURE_2D;
-        break;
-    case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
-    case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
-    case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
-    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
-    case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
-    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
-        bindTextureTarget = GL_TEXTURE_CUBE_MAP;
-        break;
-    default:
-        return false;
-    }
-
-    auto backendSize = this->backendSize();
-    cairo_surface_flush(m_surfaces[0].get());
-
-    std::unique_ptr<GLContext> context = GLContext::createOffscreenContext(&PlatformDisplay::sharedDisplayForCompositing());
-    context->makeContextCurrent();
-    uint32_t fbo;
-    glGenFramebuffers(1, &fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_textures[0], 0);
-    glBindTexture(bindTextureTarget, destinationTexture);
-    glCopyTexImage2D(target, 0, internalFormat, 0, 0, backendSize.width(), backendSize.height(), 0);
-    glBindTexture(bindTextureTarget, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glFlush();
-    glDeleteFramebuffers(1, &fbo);
-    return true;
-}
-
 void ImageBufferCairoGLSurfaceBackend::swapBuffersIfNeeded()
 {
     auto backendSize = this->backendSize();
