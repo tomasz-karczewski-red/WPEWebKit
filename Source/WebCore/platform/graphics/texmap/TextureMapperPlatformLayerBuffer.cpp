@@ -187,7 +187,18 @@ bool TextureMapperPlatformLayerBuffer::isHolePunchBuffer()
 
 void TextureMapperPlatformLayerBuffer::addFenceSyncIfAvailable()
 {
-    unsigned version = GLContext::current()->version();
+    static unsigned version = 0;
+    static std::once_flag onceFlag;
+
+    std::call_once(onceFlag, []() {
+        GLContext* context = GLContext::current();
+        if (!context) {
+            context = PlatformDisplay::sharedDisplayForCompositing().sharingGLContext();
+            context->makeContextCurrent();
+        }
+        version = context->version();
+    });
+
     if (version >= 300 && glFenceSync) {
         // GLES 3, so fences are available and we can use them.
         m_sync = static_cast<void*>(glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0));
