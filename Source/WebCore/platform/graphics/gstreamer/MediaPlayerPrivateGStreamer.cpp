@@ -228,9 +228,9 @@ MediaPlayerPrivateGStreamer::~MediaPlayerPrivateGStreamer()
     Telemetry::reportPlaybackState(Telemetry::avpipeline_state_t::STOP);
 
 #if USE(GSTREAMER_HOLEPUNCH)
->>>>>>> 450579298184 (ONEM-31491: Implemented generic Telemetry Reports (#359))
     if (m_gstreamerHolePunchHost)
         m_gstreamerHolePunchHost->playerPrivateWillBeDestroyed();
+#endif
 
     m_sinkTaskQueue.startAborting();
 
