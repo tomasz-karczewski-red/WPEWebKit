@@ -99,6 +99,9 @@ RefPtr<cairo_region_t> toCairoRegion(const Region&);
 
 cairo_matrix_t toCairoMatrix(const AffineTransform&);
 
+void attachSurfaceUniqueID(cairo_surface_t*);
+uintptr_t getSurfaceUniqueID(cairo_surface_t*);
+
 } // namespace WebCore
 
 #endif // USE(CAIRO)
