@@ -81,7 +81,6 @@ set(webrtc_SOURCES
     Source/third_party/abseil-cpp/absl/synchronization/notification.cc
     Source/third_party/abseil-cpp/absl/hash/internal/wyhash.cc
     Source/third_party/abseil-cpp/absl/hash/internal/hash.cc
-    Source/third_party/abseil-cpp/absl/hash/internal/print_hash_of.cc
     Source/third_party/abseil-cpp/absl/hash/internal/city.cc
     Source/third_party/abseil-cpp/absl/debugging/symbolize.cc
     Source/third_party/abseil-cpp/absl/debugging/failure_signal_handler.cc
@@ -119,7 +118,6 @@ set(webrtc_SOURCES
     Source/third_party/abseil-cpp/absl/random/gaussian_distribution.cc
     Source/third_party/abseil-cpp/absl/random/discrete_distribution.cc
     Source/third_party/abseil-cpp/absl/random/seed_gen_exception.cc
-    Source/third_party/abseil-cpp/absl/random/internal/gaussian_distribution_gentables.cc
     Source/third_party/abseil-cpp/absl/random/internal/seed_material.cc
     Source/third_party/abseil-cpp/absl/random/internal/randen_slow.cc
     Source/third_party/abseil-cpp/absl/random/internal/chi_square.cc
@@ -240,11 +238,6 @@ set(webrtc_SOURCES
     Source/third_party/boringssl/src/crypto/evp/sign.c
     Source/third_party/boringssl/src/crypto/ex_data.c
     Source/third_party/boringssl/src/crypto/fipsmodule/bcm.c
-    Source/third_party/boringssl/src/crypto/fipsmodule/dh/check.c
-    Source/third_party/boringssl/src/crypto/fipsmodule/dh/dh.c
-    Source/third_party/boringssl/src/crypto/fipsmodule/ecdh/ecdh.c
-    Source/third_party/boringssl/src/crypto/fipsmodule/ec/p256.c
-    Source/third_party/boringssl/src/crypto/fipsmodule/rand/fork_detect.c
     Source/third_party/boringssl/src/crypto/hkdf/hkdf.c
     Source/third_party/boringssl/src/crypto/hpke/hpke.c
     Source/third_party/boringssl/src/crypto/hrss/hrss.c
@@ -1001,7 +994,6 @@ set(webrtc_SOURCES
     Source/webrtc/modules/audio_processing/splitting_filter.cc
     Source/webrtc/modules/audio_processing/test/conversational_speech/config.cc
     Source/webrtc/modules/audio_processing/test/conversational_speech/timing.cc
-    Source/webrtc/modules/audio_processing/test/py_quality_assessment/quality_assessment/vad.cc
     Source/webrtc/modules/audio_processing/three_band_filter_bank.cc
     Source/webrtc/modules/audio_processing/transient/file_utils.cc
     Source/webrtc/modules/audio_processing/transient/moving_moments.cc

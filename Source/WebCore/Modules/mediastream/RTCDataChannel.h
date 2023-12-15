@@ -89,6 +89,7 @@ public:
     using RefCounted<RTCDataChannel>::deref;
 
     WEBCORE_EXPORT static std::unique_ptr<RTCDataChannelHandler> handlerFromIdentifier(RTCDataChannelLocalIdentifier);
+    virtual ~RTCDataChannel();
 
 private:
     RTCDataChannel(ScriptExecutionContext&, std::unique_ptr<RTCDataChannelHandler>&&, String&&, RTCDataChannelInit&&);
