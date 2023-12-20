@@ -335,6 +335,7 @@ set(WTF_PUBLIC_HEADERS
     WorkQueue.h
     WorkerPool.h
     dtoa.h
+    TelemetryReport.h
 
     dtoa/bignum-dtoa.h
     dtoa/bignum.h
@@ -506,6 +507,7 @@ set(WTF_SOURCES
     WorkQueue.cpp
     WorkerPool.cpp
     dtoa.cpp
+    TelemetryReport.cpp
 
     dtoa/bignum-dtoa.cc
     dtoa/bignum.cc

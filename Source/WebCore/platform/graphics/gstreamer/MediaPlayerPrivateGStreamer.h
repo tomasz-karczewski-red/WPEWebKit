@@ -48,6 +48,7 @@
 #include <wtf/RunLoop.h>
 #include <wtf/WeakPtr.h>
 #include <wtf/text/AtomStringHash.h>
+#include <wtf/TelemetryReport.h>
 
 typedef struct _GstMpegtsSection GstMpegtsSection;
 
@@ -581,6 +582,7 @@ private:
     InitData parseInitDataFromProtectionMessage(GstMessage*);
     bool waitForCDMAttachment();
 #endif
+    Telemetry::drm_type_t getDrm();
 
     void configureMediaStreamAudioTracks();
     void invalidateCachedPositionOnNextIteration() const;
