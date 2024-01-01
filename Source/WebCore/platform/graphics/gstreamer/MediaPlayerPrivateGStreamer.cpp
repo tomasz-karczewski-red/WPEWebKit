@@ -695,8 +695,7 @@ void MediaPlayerPrivateGStreamer::setRate(float rate)
             m_playbackRatePausedState = PlaybackRatePausedState::RatePaused;
             updateStates();
         }
-        if (m_currentState == GST_STATE_PLAYING && !m_playbackRate
-            && m_playbackRatePausedState != PlaybackRatePausedState::RatePaused) {
+        if (m_currentState == GST_STATE_PLAYING && m_playbackRatePausedState != PlaybackRatePausedState::RatePaused) {
             GST_INFO_OBJECT(pipeline(), "Pausing stream because of zero playback rate in setRate");
             m_playbackRatePausedState = PlaybackRatePausedState::RatePaused;
             changePipelineState(GST_STATE_PAUSED);
@@ -713,8 +712,7 @@ void MediaPlayerPrivateGStreamer::setRate(float rate)
     if ((state != GST_STATE_PLAYING && state != GST_STATE_PAUSED)
         || (pending == GST_STATE_PAUSED))
         return;
-    if (m_currentState == GST_STATE_PAUSED && m_playbackRate
-        && m_playbackRatePausedState != PlaybackRatePausedState::Playing) {
+    if (m_currentState == GST_STATE_PAUSED && m_playbackRate && m_playbackRatePausedState != PlaybackRatePausedState::Playing) {
         m_playbackRatePausedState = PlaybackRatePausedState::Playing;
         GST_INFO_OBJECT(pipeline(), "[Buffering] Restarting playback (because of resuming from zero playback rate) in setRate");
         changePipelineState(GST_STATE_PLAYING);
