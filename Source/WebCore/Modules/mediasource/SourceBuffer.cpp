@@ -447,6 +447,7 @@ void SourceBuffer::removedFromMediaSource()
     m_private->removedFromMediaSource();
     m_private->setIsAttached(false);
     m_source = nullptr;
+    m_extraMemoryCost = 0;
 }
 
 void SourceBuffer::seekToTime(const MediaTime& time)
