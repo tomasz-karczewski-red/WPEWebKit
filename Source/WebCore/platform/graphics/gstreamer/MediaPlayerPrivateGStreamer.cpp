@@ -1067,6 +1067,7 @@ void MediaPlayerPrivateGStreamer::notifyPlayerOfTrack()
             continue;
 
         AtomString streamId(TrackPrivateBaseGStreamer::trackIdFromPadStreamStartOrUniqueID(type, i, pad));
+        validStreams.append(streamId);
 
         if (i < tracks.size()) {
             RefPtr<TrackPrivateType> existingTrack = tracks.get(streamId);
@@ -1082,7 +1083,6 @@ void MediaPlayerPrivateGStreamer::notifyPlayerOfTrack()
 
         auto track = TrackPrivateType::create(*this, i, GRefPtr(pad));
         ASSERT(track->id() == streamId);
-        validStreams.append(track->id());
         if (!track->trackIndex() && (type == TrackType::Audio || type == TrackType::Video))
             track->setActive(true);
         ASSERT(streamId == track->id());
