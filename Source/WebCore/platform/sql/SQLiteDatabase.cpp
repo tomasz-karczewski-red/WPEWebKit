@@ -152,6 +152,12 @@ bool SQLiteDatabase::open(const String& filename, OpenMode openMode)
             LOG_ERROR("SQLite database could not set temp_store to memory");
     }
 
+    {
+        SQLiteTransactionInProgressAutoCounter transactionCounter;
+        // prevent wasting disk space, see https://www.sqlite.org/pragma.html#pragma_journal_size_limit
+        executeCommand("PRAGMA journal_size_limit = 0;"_s);
+    }
+
     if (filename != inMemoryPath()) {
         if (openMode != OpenMode::ReadOnly && !useWALJournalMode())
             return false;
