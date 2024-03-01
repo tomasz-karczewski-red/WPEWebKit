@@ -1662,12 +1662,12 @@ static void logBlockedCookieInformation(NetworkConnectionToWebProcess& connectio
 #define LOCAL_LOG(str, ...) \
     LOCAL_LOG_IF_ALLOWED("logCookieInformation: BLOCKED cookie access for webPageID=%s, frameID=%s, resourceID=%s, firstParty=%s: " str, escapedPageID.utf8().data(), escapedFrameID.utf8().data(), escapedIdentifier.utf8().data(), escapedFirstParty.utf8().data(), ##__VA_ARGS__)
 
-    LOCAL_LOG(R"({ "url": "%{public}s",)", escapedURL.utf8().data());
-    LOCAL_LOG(R"(  "partition": "%{public}s",)", "BLOCKED");
-    LOCAL_LOG(R"(  "hasStorageAccess": %{public}s,)", "false");
-    LOCAL_LOG(R"(  "referer": "%{public}s",)", escapedReferrer.utf8().data());
-    LOCAL_LOG(R"(  "isSameSite": "%{public}s",)", sameSiteInfo.isSameSite ? "true" : "false");
-    LOCAL_LOG(R"(  "isTopSite": "%{public}s",)", sameSiteInfo.isTopSite ? "true" : "false");
+    LOCAL_LOG(R"({ "url": "%)" PUBLIC_LOG_STRING R"(",)", escapedURL.utf8().data());
+    LOCAL_LOG(R"(  "partition": "%)" PUBLIC_LOG_STRING R"(",)", "BLOCKED");
+    LOCAL_LOG(R"(  "hasStorageAccess": %)" PUBLIC_LOG_STRING R"(,)", "false");
+    LOCAL_LOG(R"(  "referer": "%)" PUBLIC_LOG_STRING R"(",)", escapedReferrer.utf8().data());
+    LOCAL_LOG(R"(  "isSameSite": "%)" PUBLIC_LOG_STRING R"(",)", sameSiteInfo.isSameSite ? "true" : "false");
+    LOCAL_LOG(R"(  "isTopSite": "%)" PUBLIC_LOG_STRING R"(",)", sameSiteInfo.isTopSite ? "true" : "false");
     LOCAL_LOG(R"(  "cookies": [])");
     LOCAL_LOG(R"(  })");
 #undef LOCAL_LOG
@@ -1694,12 +1694,12 @@ static void logCookieInformationInternal(NetworkConnectionToWebProcess& connecti
 #define LOCAL_LOG(str, ...) \
     LOCAL_LOG_IF_ALLOWED("logCookieInformation: webPageID=%s, frameID=%s, resourceID=%s: " str, escapedPageID.utf8().data(), escapedFrameID.utf8().data(), escapedIdentifier.utf8().data(), ##__VA_ARGS__)
 
-    LOCAL_LOG(R"({ "url": "%{public}s",)", escapedURL.utf8().data());
-    LOCAL_LOG(R"(  "partition": "%{public}s",)", escapedPartition.utf8().data());
-    LOCAL_LOG(R"(  "hasStorageAccess": %{public}s,)", hasStorageAccess ? "true" : "false");
-    LOCAL_LOG(R"(  "referer": "%{public}s",)", escapedReferrer.utf8().data());
-    LOCAL_LOG(R"(  "isSameSite": "%{public}s",)", sameSiteInfo.isSameSite ? "true" : "false");
-    LOCAL_LOG(R"(  "isTopSite": "%{public}s",)", sameSiteInfo.isTopSite ? "true" : "false");
+    LOCAL_LOG(R"({ "url": "%)" PUBLIC_LOG_STRING R"(",)", escapedURL.utf8().data());
+    LOCAL_LOG(R"(  "partition": "%)" PUBLIC_LOG_STRING R"(",)", escapedPartition.utf8().data());
+    LOCAL_LOG(R"(  "hasStorageAccess": %)" PUBLIC_LOG_STRING R"(,)", hasStorageAccess ? "true" : "false");
+    LOCAL_LOG(R"(  "referer": "%)" PUBLIC_LOG_STRING R"(",)", escapedReferrer.utf8().data());
+    LOCAL_LOG(R"(  "isSameSite": "%)" PUBLIC_LOG_STRING R"(",)", sameSiteInfo.isSameSite ? "true" : "false");
+    LOCAL_LOG(R"(  "isTopSite": "%)" PUBLIC_LOG_STRING R"(",)", sameSiteInfo.isTopSite ? "true" : "false");
     LOCAL_LOG(R"(  "cookies": [)");
 
     auto size = cookies.size();
@@ -1717,18 +1717,18 @@ static void logCookieInformationInternal(NetworkConnectionToWebProcess& connecti
         auto escapedCommentURL = escapeForJSON(cookie.commentURL.string());
         // FIXME: Log Same-Site policy for each cookie. See <https://bugs.webkit.org/show_bug.cgi?id=184894>.
 
-        LOCAL_LOG(R"(  { "name": "%{public}s",)", escapedName.utf8().data());
-        LOCAL_LOG(R"(    "value": "%{public}s",)", escapedValue.utf8().data());
-        LOCAL_LOG(R"(    "domain": "%{public}s",)", escapedDomain.utf8().data());
-        LOCAL_LOG(R"(    "path": "%{public}s",)", escapedPath.utf8().data());
+        LOCAL_LOG(R"(  { "name": "%)" PUBLIC_LOG_STRING R"(",)", escapedName.utf8().data());
+        LOCAL_LOG(R"(    "value": "%)" PUBLIC_LOG_STRING R"(",)", escapedValue.utf8().data());
+        LOCAL_LOG(R"(    "domain": "%)" PUBLIC_LOG_STRING R"(",)", escapedDomain.utf8().data());
+        LOCAL_LOG(R"(    "path": "%)" PUBLIC_LOG_STRING R"(",)", escapedPath.utf8().data());
         LOCAL_LOG(R"(    "created": %f,)", cookie.created);
         LOCAL_LOG(R"(    "expires": %f,)", cookie.expires.value_or(0));
-        LOCAL_LOG(R"(    "httpOnly": %{public}s,)", cookie.httpOnly ? "true" : "false");
-        LOCAL_LOG(R"(    "secure": %{public}s,)", cookie.secure ? "true" : "false");
-        LOCAL_LOG(R"(    "session": %{public}s,)", cookie.session ? "true" : "false");
-        LOCAL_LOG(R"(    "comment": "%{public}s",)", escapedComment.utf8().data());
-        LOCAL_LOG(R"(    "commentURL": "%{public}s")", escapedCommentURL.utf8().data());
-        LOCAL_LOG(R"(  }%{public}s)", trailingComma);
+        LOCAL_LOG(R"(    "httpOnly": %)" PUBLIC_LOG_STRING R"(,)", cookie.httpOnly ? "true" : "false");
+        LOCAL_LOG(R"(    "secure": %)" PUBLIC_LOG_STRING R"(,)", cookie.secure ? "true" : "false");
+        LOCAL_LOG(R"(    "session": %)" PUBLIC_LOG_STRING R"(,)", cookie.session ? "true" : "false");
+        LOCAL_LOG(R"(    "comment": "%)" PUBLIC_LOG_STRING R"(",)", escapedComment.utf8().data());
+        LOCAL_LOG(R"(    "commentURL": "%)" PUBLIC_LOG_STRING R"(")", escapedCommentURL.utf8().data());
+        LOCAL_LOG(R"(  }%)" PUBLIC_LOG_STRING, trailingComma);
     }
     LOCAL_LOG(R"(]})");
 #undef LOCAL_LOG
@@ -1778,7 +1778,7 @@ void NetworkResourceLoader::logSlowCacheRetrieveIfNeeded(const NetworkCache::Cac
     if (info.storageTimings.dispatchTime) {
         auto time = (info.storageTimings.dispatchTime - info.storageTimings.startTime).milliseconds();
         auto count = info.storageTimings.dispatchCountAtDispatch - info.storageTimings.dispatchCountAtStart;
-        LOADER_RELEASE_LOG("logSlowCacheRetrieveIfNeeded: Dispatch delay %.0fms, dispatched %lu resources first", time, count);
+        LOADER_RELEASE_LOG("logSlowCacheRetrieveIfNeeded: Dispatch delay %.0fms, dispatched %zu resources first", time, count);
     }
     if (info.storageTimings.recordIOStartTime)
         LOADER_RELEASE_LOG("logSlowCacheRetrieveIfNeeded: Record I/O time %.0fms", (info.storageTimings.recordIOEndTime - info.storageTimings.recordIOStartTime).milliseconds());
