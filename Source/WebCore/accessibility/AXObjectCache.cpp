@@ -1364,14 +1364,34 @@ void AXObjectCache::handleRowCountChanged(AXCoreObject* axObject, Document* docu
     postNotification(axObject, document, AXRowCountChanged);
 }
 
-void AXObjectCache::deferFocusedUIElementChangeIfNeeded(Node* oldNode, Node* newNode)
+static bool shouldDeferFocusChange(Element* element)
 {
-    if (nodeAndRendererAreValid(newNode) && rendererNeedsDeferredUpdate(*newNode->renderer())) {
-        m_deferredFocusedNodeChange.append({ oldNode, newNode });
-        if (!newNode->renderer()->needsLayout() && !m_performCacheUpdateTimer.isActive())
+    if (!element)
+        return false;
+
+    auto* renderer = element->renderer();
+    if (renderer && rendererNeedsDeferredUpdate(*renderer))
+        return true;
+
+    // We also want to defer handling focus changes for nodes that haven't yet attached their renderer.
+    if (const auto* style = element->existingComputedStyle())
+        return !renderer && element->rendererIsNeeded(*style);
+    // No existing style, so we can't easily determine whether this element will need a renderer.
+    // Resolving style is expensive and we don't want to do it now, so make this decision assuming
+    // a renderer just hasn't been attached yet, indicated by it being nullptr.
+    return !renderer;
+}
+
+void AXObjectCache::deferFocusedUIElementChangeIfNeeded(Element* oldElement, Element* newElement)
+{
+    if (shouldDeferFocusChange(newElement)) {
+        m_deferredFocusedNodeChange.append({ oldElement, newElement });
+       // Don't start the timer if a layout is pending, as the layout will trigger a cache update.
+        bool needsLayout = newElement->renderer() && newElement->renderer()->needsLayout();
+        if (!needsLayout && !m_performCacheUpdateTimer.isActive())
             m_performCacheUpdateTimer.startOneShot(0_s);
     } else
-        handleFocusedUIElementChanged(oldNode, newNode);
+        handleFocusedUIElementChanged(oldElement, newElement);
 }
 
 void AXObjectCache::deferMenuListValueChange(Element* element)
