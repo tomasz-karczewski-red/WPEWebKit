@@ -909,7 +909,11 @@ bool gstObjectHasProperty(GstPad* pad, const char* name)
 #if !GST_CHECK_VERSION(1, 20, 0)
 GstBuffer* gst_buffer_new_memdup(gconstpointer data, gsize size)
 {
+#if GLIB_CHECK_VERSION(2, 68, 0)
     gpointer data2 = g_memdup2(data, size);
+#else
+    gpointer data2 = g_memdup(data, size);
+#endif
 
     return gst_buffer_new_wrapped_full(static_cast<GstMemoryFlags>(0), data2, size, 0, size, data2, g_free);
 }
