@@ -43,6 +43,10 @@ list(APPEND WebKitTestRunnerInjectedBundle_SOURCES
     InjectedBundle/atspi/AccessibilityNotificationHandler.cpp
     InjectedBundle/atspi/AccessibilityUIElementAtspi.cpp
 
+    InjectedBundle/atk/AccessibilityControllerAtk.cpp
+    InjectedBundle/atk/AccessibilityNotificationHandlerAtk.cpp
+    InjectedBundle/atk/AccessibilityUIElementAtk.cpp
+
     InjectedBundle/wpe/ActivateFontsWPE.cpp
     InjectedBundle/wpe/InjectedBundleWPE.cpp
     InjectedBundle/wpe/TestRunnerWPE.cpp
@@ -51,8 +55,14 @@ list(APPEND WebKitTestRunnerInjectedBundle_SOURCES
 list(APPEND WebKitTestRunnerInjectedBundle_INCLUDE_DIRECTORIES
     ${GLIB_INCLUDE_DIRS}
     ${WebKitTestRunner_DIR}/InjectedBundle/atspi
+    ${WebKitTestRunner_DIR}/InjectedBundle/atk
     ${WebKitTestRunner_DIR}/InjectedBundle/wpe
 )
+
+if (USE_ATK)
+    list(APPEND WebKitTestRunnerInjectedBundle_LIBRARIES ${ATK_LIBRARIES})
+    list(APPEND WebKitTestRunnerInjectedBundle_INCLUDE_DIRECTORIES ${ATK_INCLUDE_DIRS})
+endif ()
 
 add_definitions(
     -DFONTS_CONF_DIR="${TOOLS_DIR}/WebKitTestRunner/gtk/fonts"

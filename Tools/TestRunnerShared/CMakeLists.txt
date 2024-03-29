@@ -1,3 +1,6 @@
+set(TestRunnerShared_LIBRARY_TYPE OBJECT)
+set(TestRunnerShared_DEPENDENCIES TestRunnerSharedBindings)
+
 WEBKIT_FRAMEWORK_DECLARE(TestRunnerShared)
 
 set(DumpRenderTree_BINDINGS_DIR ${TOOLS_DIR}/DumpRenderTree/Bindings)
@@ -54,9 +57,6 @@ GENERATE_BINDINGS(TestRunnerSharedBindings
     FEATURES ${FEATURE_DEFINES_WITH_SPACE_SEPARATOR}
     DESTINATION ${TestRunnerShared_DERIVED_SOURCES_DIR}
     GENERATOR DumpRenderTree)
-
-set(TestRunnerShared_LIBRARY_TYPE OBJECT)
-set(TestRunnerShared_DEPENDENCIES TestRunnerSharedBindings)
 
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 WEBKIT_FRAMEWORK(TestRunnerShared)
