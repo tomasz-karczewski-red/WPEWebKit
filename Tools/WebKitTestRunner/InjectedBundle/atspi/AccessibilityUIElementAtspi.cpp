@@ -27,6 +27,7 @@
 #include "AccessibilityUIElement.h"
 
 #if USE(ATSPI)
+#include "AccessibilityController.h"
 #include "AccessibilityNotificationHandler.h"
 #include "InjectedBundle.h"
 #include "InjectedBundlePage.h"

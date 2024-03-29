@@ -26,6 +26,9 @@
 #include "config.h"
 #include "InjectedBundle.h"
 
+#if ENABLE(ACCESSIBILITY)
+#include "AccessibilityController.h"
+#endif
 #include "ActivateFonts.h"
 #include "DictionaryFunctions.h"
 #include "InjectedBundlePage.h"

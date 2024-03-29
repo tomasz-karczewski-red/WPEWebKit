@@ -37,13 +37,13 @@
 #include <wtf/RefPtr.h>
 #include <wtf/Vector.h>
 
-#if ENABLE(ACCESSIBILITY)
-#include "AccessibilityController.h"
-#endif
-
 namespace WTR {
 
 class InjectedBundlePage;
+
+#if ENABLE(ACCESSIBILITY)
+class AccessibilityController;
+#endif
 
 class InjectedBundle {
 public:

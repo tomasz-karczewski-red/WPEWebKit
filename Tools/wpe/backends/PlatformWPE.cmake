@@ -11,7 +11,6 @@ list(APPEND WPEToolingBackends_PUBLIC_HEADERS
 list(APPEND WPEToolingBackends_SOURCES
     ${WPEToolingBackends_DERIVED_SOURCES_DIR}/xdg-shell-unstable-v6-protocol.c
 
-    atk/ViewBackendAtk.cpp
     atk/WebKitAccessibleApplication.cpp
 
     fdo/HeadlessViewBackendFdo.cpp
@@ -64,5 +63,11 @@ if (ENABLE_ACCESSIBILITY)
     list(APPEND WPEToolingBackends_PRIVATE_DEFINITIONS
         GLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_40
     )
-    list(APPEND WPEToolingBackends_LIBRARIES ATK::Bridge)
+    if (USE_ATK)
+        list(APPEND WPEToolingBackends_DEFINITIONS USE_ATK=1)
+        list(APPEND WPEToolingBackends_LIBRARIES ATK::Bridge)
+        list(APPEND WPEToolingBackends_SOURCES
+          atk/ViewBackendAtk.cpp
+        )
+    endif ()
 endif ()
