@@ -199,7 +199,7 @@ public:
     void loadingFinished() { updateLoadingProgress(1); }
     double loadingProgress() const { return m_loadingProgress; }
 
-    void deferFocusedUIElementChangeIfNeeded(Node* oldFocusedNode, Node* newFocusedNode);
+    void deferFocusedUIElementChangeIfNeeded(Element* oldElement, Element* newElement);
     void deferModalChange(Element*);
     void deferMenuListValueChange(Element*);
     void deferNodeAddedOrRemoved(Node*);
@@ -647,7 +647,7 @@ inline void AXObjectCache::childrenChanged(Node*, Node*) { }
 inline void AXObjectCache::childrenChanged(RenderObject*, RenderObject*) { }
 inline void AXObjectCache::childrenChanged(AccessibilityObject*) { }
 inline void AXObjectCache::valueChanged(Element*) { }
-inline void AXObjectCache::deferFocusedUIElementChangeIfNeeded(Node*, Node*) { }
+inline void AXObjectCache::deferFocusedUIElementChangeIfNeeded(Element*, Element*) { }
 inline void AXObjectCache::deferRecomputeIsIgnoredIfNeeded(Element*) { }
 inline void AXObjectCache::deferRecomputeIsIgnored(Element*) { }
 inline void AXObjectCache::deferTextChangedIfNeeded(Node*) { }
