@@ -309,7 +309,7 @@ int main(int argc, char *argv[])
     g_object_unref(settings);
 
     backendPtr->setInputClient(std::make_unique<InputClient>(loop, webView));
-#if defined(ENABLE_ACCESSIBILITY) && ENABLE_ACCESSIBILITY
+#if defined(ENABLE_ACCESSIBILITY) && ENABLE_ACCESSIBILITY && defined(USE_ATK) && USE_ATK
     auto* accessible = wpe_view_backend_dispatch_get_accessible(wpeBackend);
     if (ATK_IS_OBJECT(accessible))
         backendPtr->setAccessibleChild(ATK_OBJECT(accessible));

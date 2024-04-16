@@ -36,7 +36,7 @@ ViewBackend::ViewBackend(uint32_t width, uint32_t height)
 
 ViewBackend::~ViewBackend() = default;
 
-#if !(defined(ENABLE_ACCESSIBILITY) && ENABLE_ACCESSIBILITY)
+#if !(defined(ENABLE_ACCESSIBILITY) && ENABLE_ACCESSIBILITY && defined(USE_ATK) && USE_ATK)
 void ViewBackend::initializeAccessibility()
 {
 }
@@ -81,7 +81,7 @@ void ViewBackend::dispatchInputAxisEvent(struct wpe_input_axis_event* event)
 
 void ViewBackend::dispatchInputKeyboardEvent(struct wpe_input_keyboard_event* event)
 {
-#if defined(ENABLE_ACCESSIBILITY) && ENABLE_ACCESSIBILITY
+#if defined(ENABLE_ACCESSIBILITY) && ENABLE_ACCESSIBILITY && defined(USE_ATK) && USE_ATK
     notifyAccessibilityKeyEventListeners(event);
 #endif
 
