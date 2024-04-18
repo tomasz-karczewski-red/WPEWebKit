@@ -11,7 +11,9 @@ aptIfElse() {
 }
 
 aptIfExists() {
-    local ret=$(apt show "$1" 2>/dev/null)
+    local ret
+
+    ret=$(apt show "$1" 2>/dev/null)
     if [[ $? -ne 0 ]]; then
         return
     fi
@@ -36,6 +38,7 @@ PACKAGES=(
     itstool
     libasound2-dev
     libatk1.0-dev
+    $(aptIfExists libavif-dev)
     libepoxy-dev
     libevent-dev
     libfile-copy-recursive-perl
@@ -46,9 +49,11 @@ PACKAGES=(
     libjpeg-dev
     libkate-dev
     liblcms2-dev
+    libnghttp2-dev
     libopenjp2-7-dev
     libpng-dev
     libseccomp-dev
+    $(aptIfExists libsoup-3.0-dev)
     libsqlite3-dev
     libsystemd-dev
     libtasn1-6-dev
@@ -79,18 +84,24 @@ PACKAGES=(
     libglib2.0-bin
 
     # These are dependencies necessary for building the jhbuild.
+    bison
+    flex
     git
+    gobject-introspection
     gsettings-desktop-schemas-dev
     gyp
     libegl1-mesa-dev
     libexpat1-dev
     libfdk-aac-dev
+    libgirepository1.0-dev
     libgles2-mesa-dev
     liborc-0.4-dev
     libproxy-dev
     libpsl-dev
+    libssl-dev
     libtool-bin
     libxml-libxml-perl
+    nasm
     python3-setuptools
     uuid-dev
     yasm
