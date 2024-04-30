@@ -43,7 +43,6 @@
 #include <gst/base/gstflowcombiner.h>
 #include <wtf/UUID.h>
 #include <wtf/glib/WTFGType.h>
-#include <wtf/ThreadSafeWeakPtr.h>
 
 using namespace WebCore;
 
