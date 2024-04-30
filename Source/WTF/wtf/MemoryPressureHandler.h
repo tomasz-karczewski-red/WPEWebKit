@@ -59,6 +59,7 @@ enum class MemoryUsagePolicy : uint8_t {
     Unrestricted, // Allocate as much as you want
     Conservative, // Maybe you don't cache every single thing
     Strict, // Time to start pinching pennies for real
+    StrictSynchronous, // Time to start pinching pennies for real, and do it now
 };
 
 enum class MemoryType : uint8_t {
@@ -243,6 +244,7 @@ private:
     std::optional<size_t> thresholdForMemoryKill(MemoryType);
     size_t thresholdForPolicy(MemoryUsagePolicy, MemoryType);
     MemoryUsagePolicy policyForFootprints(size_t, size_t);
+    size_t calculateFootprintForPolicyDecision(size_t footprint, size_t footprintVideo);
 
     void memoryPressureStatusChanged();
 
