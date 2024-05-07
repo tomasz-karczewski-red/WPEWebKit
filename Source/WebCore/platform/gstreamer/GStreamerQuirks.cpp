@@ -26,11 +26,13 @@
 #include "GStreamerCommon.h"
 #include "GStreamerHolePunchQuirkBcmNexus.h"
 #include "GStreamerHolePunchQuirkFake.h"
+#include "GStreamerHolePunchQuirkRialto.h"
 #include "GStreamerHolePunchQuirkWesteros.h"
 #include "GStreamerQuirkAmLogic.h"
 #include "GStreamerQuirkBcmNexus.h"
 #include "GStreamerQuirkBroadcom.h"
 #include "GStreamerQuirkRealtek.h"
+#include "GStreamerQuirkRialto.h"
 #include "GStreamerQuirkWesteros.h"
 #include <wtf/NeverDestroyed.h>
 #include <wtf/OptionSet.h>
@@ -104,6 +106,8 @@ GStreamerQuirksManager::GStreamerQuirksManager(bool isForTesting, bool loadQuirk
                 quirk = WTF::makeUnique<GStreamerQuirkBcmNexus>();
             else if (WTF::equalLettersIgnoringASCIICase(identifier, "realtek"_s))
                 quirk = WTF::makeUnique<GStreamerQuirkRealtek>();
+            else if (WTF::equalLettersIgnoringASCIICase(identifier, "rialto"_s))
+                quirk = WTF::makeUnique<GStreamerQuirkRialto>();
             else if (WTF::equalLettersIgnoringASCIICase(identifier, "westeros"_s))
                 quirk = WTF::makeUnique<GStreamerQuirkWesteros>();
             else {
@@ -142,6 +146,8 @@ GStreamerQuirksManager::GStreamerQuirksManager(bool isForTesting, bool loadQuirk
     // TODO: Maybe check this is coherent (somehow) with the quirk(s) selected above.
     if (WTF::equalLettersIgnoringASCIICase(holePunchQuirk, "bcmnexus"_s))
         m_holePunchQuirk = WTF::makeUnique<GStreamerHolePunchQuirkBcmNexus>();
+    else if (WTF::equalLettersIgnoringASCIICase(holePunchQuirk, "rialto"_s))
+        m_holePunchQuirk = WTF::makeUnique<GStreamerHolePunchQuirkRialto>();
     else if (WTF::equalLettersIgnoringASCIICase(holePunchQuirk, "westeros"_s))
         m_holePunchQuirk = WTF::makeUnique<GStreamerHolePunchQuirkWesteros>();
     else if (WTF::equalLettersIgnoringASCIICase(holePunchQuirk, "fake"_s))
@@ -153,6 +159,19 @@ GStreamerQuirksManager::GStreamerQuirksManager(bool isForTesting, bool loadQuirk
 bool GStreamerQuirksManager::isEnabled() const
 {
     return !m_quirks.isEmpty();
+}
+
+GstElement* GStreamerQuirksManager::createAudioSink()
+{
+    for (const auto& quirk : m_quirks) {
+        auto* sink = quirk->createAudioSink();
+        if (sink) {
+            GST_DEBUG("Using AudioSink from quirk %s : %" GST_PTR_FORMAT, quirk->identifier(), sink);
+            return sink;
+        }
+    }
+
+    return nullptr;
 }
 
 GstElement* GStreamerQuirksManager::createWebAudioSink()
