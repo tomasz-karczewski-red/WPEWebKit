@@ -23,7 +23,6 @@
 
 #include "GRefPtrGStreamer.h"
 #include "RealtimeMediaSource.h"
-#include <wtf/ThreadSafeWeakPtr.h>
 
 namespace WebCore {
 
