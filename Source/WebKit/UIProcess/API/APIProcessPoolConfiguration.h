@@ -159,6 +159,9 @@ public:
 #if PLATFORM(GTK) || PLATFORM(WPE)
     void setMemoryPressureHandlerConfiguration(const MemoryPressureHandler::Configuration& configuration) { m_memoryPressureHandlerConfiguration = configuration; }
     const std::optional<MemoryPressureHandler::Configuration>& memoryPressureHandlerConfiguration() const { return m_memoryPressureHandlerConfiguration; }
+
+    void setServiceWorkerMemoryPressureHandlerConfiguration(const MemoryPressureHandler::Configuration& configuration) { m_serviceWorkerMemoryPressureHandlerConfiguration = configuration; }
+    const std::optional<MemoryPressureHandler::Configuration>& serviceWorkerMemoryPressureHandlerConfiguration() const { return m_serviceWorkerMemoryPressureHandlerConfiguration; }
 #endif
 
     void setTimeZoneOverride(const WTF::String& timeZoneOverride) { m_timeZoneOverride = timeZoneOverride; }
@@ -201,6 +204,7 @@ private:
 #endif
 #if PLATFORM(GTK) || PLATFORM(WPE)
     std::optional<MemoryPressureHandler::Configuration> m_memoryPressureHandlerConfiguration;
+    std::optional<MemoryPressureHandler::Configuration> m_serviceWorkerMemoryPressureHandlerConfiguration;
 #endif
 #if HAVE(AUDIT_TOKEN)
     std::optional<audit_token_t> m_presentingApplicationProcessToken;
