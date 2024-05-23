@@ -116,7 +116,10 @@ void WebProcessPool::platformInitializeWebProcess(const WebProcessProxy& process
     parameters.useSystemAppearanceForScrollbars = m_configuration->useSystemAppearanceForScrollbars();
 #endif
 
-    parameters.memoryPressureHandlerConfiguration = m_configuration->memoryPressureHandlerConfiguration();
+    if (process.isRunningServiceWorkers() && m_configuration->serviceWorkerMemoryPressureHandlerConfiguration())
+        parameters.memoryPressureHandlerConfiguration = m_configuration->serviceWorkerMemoryPressureHandlerConfiguration();
+    else
+        parameters.memoryPressureHandlerConfiguration = m_configuration->memoryPressureHandlerConfiguration();
 
     GApplication* app = g_application_get_default();
     if (app)
