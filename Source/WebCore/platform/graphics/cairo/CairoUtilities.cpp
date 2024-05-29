@@ -223,23 +223,43 @@ void drawPatternToCairoContext(cairo_t* cr, cairo_surface_t* image, const IntSiz
         image = clippedImageSurface.get();
     }
 
-    cairo_pattern_t* pattern = cairo_pattern_create_for_surface(image);
-    switch (imageInterpolationQuality) {
-    case InterpolationQuality::DoNotInterpolate:
-    case InterpolationQuality::Low:
-        cairo_pattern_set_filter(pattern, CAIRO_FILTER_FAST);
-        break;
-    case InterpolationQuality::Default:
-        cairo_pattern_set_filter(pattern, CAIRO_FILTER_BILINEAR);
-        break;
-    case InterpolationQuality::Medium:
-        cairo_pattern_set_filter(pattern, CAIRO_FILTER_GOOD);
-        break;
-    case InterpolationQuality::High:
-        cairo_pattern_set_filter(pattern, CAIRO_FILTER_BEST);
-        break;
+    // We can't sample a pattern with repeat and scale it at the same time with a filter better than fast,
+    // because the filter will check the pixels around the target pixel, and if we're at the edge of the
+    // pattern, the pixels checked are gotten with repeat from the other end of the pattern, which leads
+    // to invalid results.
+    // To avoid this we need to create a new pattern with the scaled size, so when sampling there's no
+    // scaling involved.
+    RefPtr<cairo_surface_t> scaledImageSurface;
+    if (patternTransform.a() != 1.0 || patternTransform.d() != 1.0) {
+        IntSize scaledImageSurfaceSize = enclosingIntRect(FloatRect(0, 0, tileRect.width() * patternTransform.a(), tileRect.height() * patternTransform.d())).size();
+        scaledImageSurface = adoptRef(cairo_image_surface_create(CAIRO_FORMAT_ARGB32, scaledImageSurfaceSize.width(), scaledImageSurfaceSize.height()));
+        RefPtr<cairo_t> scaledImageContext = adoptRef(cairo_create(scaledImageSurface.get()));
+
+        RefPtr<cairo_pattern_t> pattern = cairo_pattern_create_for_surface(image);
+        switch (imageInterpolationQuality) {
+        case InterpolationQuality::DoNotInterpolate:
+        case InterpolationQuality::Low:
+            cairo_pattern_set_filter(pattern.get(), CAIRO_FILTER_FAST);
+            break;
+        case InterpolationQuality::Default:
+            cairo_pattern_set_filter(pattern.get(), CAIRO_FILTER_BILINEAR);
+            break;
+        case InterpolationQuality::Medium:
+            cairo_pattern_set_filter(pattern.get(), CAIRO_FILTER_GOOD);
+            break;
+        case InterpolationQuality::High:
+            cairo_pattern_set_filter(pattern.get(), CAIRO_FILTER_BEST);
+            break;
+        }
+        cairo_pattern_set_extend(pattern.get(), CAIRO_EXTEND_PAD);
+        cairo_matrix_t patternMatrix = { patternTransform.a(), 0, 0, patternTransform.d(), 0, 0 };
+        cairo_matrix_invert(&patternMatrix);
+        cairo_pattern_set_matrix(pattern.get(), &patternMatrix);
+        cairo_set_source(scaledImageContext.get(), pattern.get());
+        cairo_rectangle(scaledImageContext.get(), 0, 0, scaledImageSurfaceSize.width(), scaledImageSurfaceSize.height());
+        cairo_fill(scaledImageContext.get());
+        image = scaledImageSurface.get();
     }
-    cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
 
     // Due to a limitation in pixman, cairo cannot handle transformation matrices with values bigger than 32768. If the value is
     // bigger, cairo is not able to paint anything, and this is the reason for the missing backgrounds reported in
@@ -271,14 +291,19 @@ void drawPatternToCairoContext(cairo_t* cr, cairo_surface_t* image, const IntSiz
     // Regarding the pattern matrix, what we do is reduce the translation component of the matrix taking advantage of the fact that we
     // are drawing a repeated pattern. This means that, assuming that (w, h) is the size of the pattern, samplig it at (x, y) is the same
     // than sampling it at (x mod w, y mod h), so we transform the translation component of the pattern matrix in that way.
-
-    cairo_matrix_t patternMatrix = toCairoMatrix(patternTransform);
     // dx and dy are added here as well to compensate the previous translation of the destination rectangle.
     double phaseOffsetX = phase.x() + tileRect.x() * patternTransform.a() + dx;
     double phaseOffsetY = phase.y() + tileRect.y() * patternTransform.d() + dy;
     // this is where we perform the (x mod w, y mod h) metioned above, but with floats instead of integers.
     phaseOffsetX -= std::trunc(phaseOffsetX / (tileRect.width() * patternTransform.a())) * tileRect.width() * patternTransform.a();
     phaseOffsetY -= std::trunc(phaseOffsetY / (tileRect.height() * patternTransform.d())) * tileRect.height() * patternTransform.d();
+
+    cairo_pattern_t* pattern = cairo_pattern_create_for_surface(image);
+    cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
+    cairo_matrix_t patternMatrix = toCairoMatrix(patternTransform);
+    // If scale was needed, it was already done before.
+    patternMatrix.xx = 1.0;
+    patternMatrix.yy = 1.0;
     cairo_matrix_t phaseMatrix = {1, 0, 0, 1, phaseOffsetX, phaseOffsetY};
     cairo_matrix_t combined;
     cairo_matrix_multiply(&combined, &patternMatrix, &phaseMatrix);
