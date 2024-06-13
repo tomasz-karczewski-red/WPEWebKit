@@ -699,8 +699,8 @@ constexpr bool assertionFailureDueToUnreachableCode = false;
 
 #endif
 
-#define PUBLIC_LOG_STRING PUBLIC_LOG_PREFIX "s"
-#define PRIVATE_LOG_STRING PRIVATE_LOG_PREFIX "s"
+#define PUBLIC_LOG_STRING "s"
+#define PRIVATE_LOG_STRING "s"
 
 #if !RELEASE_LOG_DISABLED
 #define RELEASE_LOG_STACKTRACE(channel) WTFReleaseLogStackTrace(&LOG_CHANNEL(channel))

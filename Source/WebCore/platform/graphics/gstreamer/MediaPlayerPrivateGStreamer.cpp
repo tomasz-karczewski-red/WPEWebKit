@@ -3076,7 +3076,6 @@ void MediaPlayerPrivateGStreamer::createGSTPlayBin(const URL& url)
         g_signal_connect(videoSinkPad.get(), "notify::caps", G_CALLBACK(+[](GstPad* videoSinkPad, GParamSpec*, MediaPlayerPrivateGStreamer* player) {
             player->videoSinkCapsChanged(videoSinkPad);
         }), this);
-#endif
 
 #if USE(WESTEROS_SINK)
     // Configure Westeros sink before it allocates resources.
