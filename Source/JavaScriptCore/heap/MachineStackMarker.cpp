@@ -27,7 +27,7 @@
 #include <wtf/BitVector.h>
 #include <wtf/PageBlock.h>
 #include <wtf/StdLibExtras.h>
-
+#include <unistd.h>
 namespace JSC {
 
 MachineThreads::MachineThreads()
@@ -43,7 +43,8 @@ void MachineThreads::gatherFromCurrentThread(ConservativeRoots& conservativeRoot
         void* registersEnd = reinterpret_cast<void*>(roundUpToMultipleOf<sizeof(void*)>(reinterpret_cast<uintptr_t>(currentThreadState.registerState + 1)));
         conservativeRoots.add(registersBegin, registersEnd, jitStubRoutines, codeBlocks);
     }
-
+    static void *oldenv = environ;
+    fprintf(stderr, "xexe <%d:%d> gatherFromCurrentThread: scan top: %p origin: %p ; oldenv: %p\n", static_cast<int>(getpid()), static_cast<int>(gettid()), currentThreadState.stackTop, currentThreadState.stackOrigin, oldenv);
     conservativeRoots.add(currentThreadState.stackTop, currentThreadState.stackOrigin, jitStubRoutines, codeBlocks);
 }
 

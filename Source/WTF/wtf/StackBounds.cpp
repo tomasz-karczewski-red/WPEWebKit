@@ -134,6 +134,7 @@ StackBounds StackBounds::currentThreadStackBoundsInternal()
         void* bound = static_cast<char*>(origin) - size;
 
         static char** oldestEnviron = environ;
+        fprintf(stderr, "xexe xexe oldestEnviron: %p current stack addr: %p origin: %p top ('bound'): %p size: %u\n", oldestEnviron, &limit, origin, bound, static_cast<unsigned>(size));
 
         // In 32bit architecture, it is possible that environment variables are having a characters which looks like a pointer,
         // and conservative GC will find it as a live pointer. We would like to avoid that to precisely exclude non user stack
@@ -142,11 +143,16 @@ StackBounds StackBounds::currentThreadStackBoundsInternal()
         // environment variables if we use `environ` global variable as a origin of the stack.
         // But `setenv` / `putenv` may alter `environ` variable's content. So we record the oldest `environ` variable content, and use it.
         StackBounds stackBounds { origin, bound };
-        if (stackBounds.contains(oldestEnviron))
+        bool corrected = false;
+        if (stackBounds.contains(oldestEnviron)) {
             stackBounds = { oldestEnviron, bound };
+            corrected = true;
+        }
+        fprintf(stderr, "xexe currentThreadStackBoundsInternal #1 [%s]: return {%p %p}, environ: %p\n", corrected ? "CORRECTED" : "ORIGINAL", stackBounds.end(), stackBounds.origin(), environ);
         return stackBounds;
     }
 #endif
+    fprintf(stderr, "xexe currentThreadStackBoundsInternal #2: return {%p %p}, environ: %p\n", ret.end(), ret.origin(), environ);
     return ret;
 }
 
