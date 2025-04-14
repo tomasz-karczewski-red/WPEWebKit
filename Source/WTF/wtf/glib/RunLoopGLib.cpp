@@ -31,6 +31,44 @@
 #include <wtf/MainThread.h>
 #include <wtf/glib/RunLoopSourcePriority.h>
 
+#include <mutex>
+#include <set>
+
+// struct _stack_break {
+//     void *addr;
+//     const char *file;
+//     int line;
+// };
+
+
+
+
+std::set<_stack_break, _Comparator> __stack_breakpoints;
+
+static std::mutex _lololo_;
+
+void add_stack_break(void *ptr, const char *file, int line) {
+    std::unique_lock<std::mutex> lock(_lololo_);
+    __stack_breakpoints.insert({ptr, file, line});
+    if (line != -1) fprintf(stderr, "xoxo ADDED: %p : %s, cnt: %zu\n", ptr, file, __stack_breakpoints.size());
+}
+
+void remove_stack_break(void *ptr) {
+    // fprintf(stderr, "xoxo remove_stack_break: %p\n", ptr);
+    std::unique_lock<std::mutex> lock(_lololo_);
+    for (auto it = __stack_breakpoints.begin(); it != __stack_breakpoints.end(); ++it) {
+        if (it->addr == ptr) {
+            if (it->line != -1) fprintf(stderr, "xoxo remove_stack_break: REMOVED: %p : %s ; cnt: %zu\n", ptr, it->file, __stack_breakpoints.size());
+            __stack_breakpoints.erase(it);            
+            return;
+        }
+    }
+    fprintf(stderr, "xoxo remove_stack_break: COULD NOT REMOVE: %p ; cnt: %zu\n", ptr, __stack_breakpoints.size());
+}
+
+
+
+
 namespace WTF {
 
 typedef struct {
@@ -103,6 +141,15 @@ void RunLoop::run()
     ASSERT(!runLoop.m_mainLoops.isEmpty());
 
     GMainLoop* innermostLoop = runLoop.m_mainLoops[0].get();
+
+    int what {0};
+    add_stack_break(&what, "RunLoopGLib.cpp", __LINE__);
+    struct _remover {
+        void *ptr;
+        _remover(void *ptr) : ptr(ptr) {}
+        ~_remover() { remove_stack_break(ptr);}
+    } ___remover { &what };
+
     if (!g_main_loop_is_running(innermostLoop)) {
         g_main_context_push_thread_default(mainContext);
         g_main_loop_run(innermostLoop);

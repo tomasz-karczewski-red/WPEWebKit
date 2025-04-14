@@ -68,6 +68,31 @@ public:
         InitializeWebKit2();
 
         initializeAuxiliaryProcess(WTFMove(m_parameters));
+
+        {
+            fprintf(stderr,"\nxqxq sizeof(*this): %zu\n", sizeof(*this));
+            fprintf(stderr,"\nxqxq ");
+            char **auxparamsdump = reinterpret_cast<char**>(this);
+            size_t linecnt = 0;
+            for (size_t i = 0; i<sizeof(*this); i += sizeof(char*)) {
+                fprintf(stderr, "%.12p ", auxparamsdump[i]);
+                if (++linecnt >= 16) {
+                    fprintf(stderr,"\nxqxq ");
+                    linecnt = 0;
+                }
+            }
+
+            fprintf(stderr,"\nxqxq ");
+            char *auxparamsdumpchar = reinterpret_cast<char*>(this);
+            for (size_t i = 0; i<sizeof(*this); i += sizeof(char)) {
+                if (auxparamsdumpchar[i] > 16 && auxparamsdumpchar[i] < 125)
+                    fprintf(stderr, "%c", auxparamsdumpchar[i]);
+                else
+                fprintf(stderr, "_");
+            }
+            fprintf(stderr,"\n");
+        }
+        
         RunLoop::run();
         platformFinalize();
 

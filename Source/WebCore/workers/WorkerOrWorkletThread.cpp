@@ -39,6 +39,9 @@
 #include <wtf/glib/GRefPtr.h>
 #endif
 
+extern void add_stack_break(void *ptr, const char *file, int line);
+void remove_stack_break(void *ptr);
+
 namespace WebCore {
 
 Lock WorkerOrWorkletThread::s_workerOrWorkletThreadsLock;
@@ -109,7 +112,14 @@ void WorkerOrWorkletThread::runEventLoop()
 }
 
 void WorkerOrWorkletThread::workerOrWorkletThread()
-{
+{   
+    int what {0};
+    add_stack_break(&what, "WorkerOrWorkletThread.cpp", __LINE__);
+    struct _remover {
+        void *ptr;
+        _remover(void *ptr) : ptr(ptr) {}
+        ~_remover() { remove_stack_break(ptr);}
+    } ___remover { &what };
     Ref protectedThis { *this };
 
     if (isMainThread()) {

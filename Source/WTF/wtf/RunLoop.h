@@ -54,6 +54,17 @@
 #include <wtf/RedBlackTree.h>
 #endif
 
+struct _stack_break {
+    void *addr;
+    const char *file;
+    int line;
+};
+struct _Comparator {
+    bool operator()(const _stack_break& a, const _stack_break& b) const {
+        return a.addr > b.addr;
+    }
+};
+
 namespace WTF {
 
 #if USE(COCOA_EVENT_LOOP)

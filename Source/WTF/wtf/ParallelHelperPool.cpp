@@ -28,6 +28,12 @@
 
 #include <wtf/AutomaticThread.h>
 
+#include <set>
+#include <mutex>
+
+extern void add_stack_break(void *ptr, const char *file, int line);
+void remove_stack_break(void *ptr);
+
 namespace WTF {
 
 ParallelHelperClient::ParallelHelperClient(RefPtr<ParallelHelperPool>&& pool)
@@ -106,7 +112,13 @@ void ParallelHelperClient::runTask(const RefPtr<SharedTask<void ()>>& task)
 {
     RELEASE_ASSERT(m_numActive);
     RELEASE_ASSERT(task);
-
+    int what {0};
+    add_stack_break(&what, "ParallelHelperPool.cpp", __LINE__);
+    struct _remover {
+        void *ptr;
+        _remover(void *ptr) : ptr(ptr) {}
+        ~_remover() { remove_stack_break(ptr);}
+    } ___remover { &what };
     task->run();
 
     {

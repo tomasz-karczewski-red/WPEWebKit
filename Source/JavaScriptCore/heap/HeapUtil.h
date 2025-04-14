@@ -25,6 +25,9 @@
 
 #pragma once
 
+#include <atomic>
+extern std::atomic_bool __DEBUG_GC_;
+
 namespace JSC {
 
 // Are you tired of waiting for all of WebKit to build because you changed the implementation of a
@@ -67,8 +70,12 @@ public:
                     [] (PreciseAllocation** ptr) -> PreciseAllocation* { return *ptr; });
                 if (result) {
                     auto attemptLarge = [&] (PreciseAllocation* allocation) {
-                        if (allocation->contains(pointer) && allocation->hasValidCell())
+                        if (allocation->contains(pointer) && allocation->hasValidCell()) {
+                            if (__DEBUG_GC_) {
+                                fprintf(stderr, "xixi HeapUtil root found #1 : %p -> %p\n", passedPointer, allocation->cell());
+                            }
                             func(allocation->cell(), allocation->attributes().cellKind);
+                        }
                     };
                     
                     if (result > heap.objectSpace().preciseAllocationsForThisCollectionBegin())
@@ -90,8 +97,12 @@ public:
                 && set.contains(previousCandidate)
                 && mayHaveIndexingHeader(previousCandidate->handle().cellKind())) {
                 previousPointer = static_cast<char*>(previousCandidate->handle().cellAlign(previousPointer));
-                if (previousCandidate->handle().isLiveCell(markingVersion, newlyAllocatedVersion, isMarking, previousPointer))
+                if (previousCandidate->handle().isLiveCell(markingVersion, newlyAllocatedVersion, isMarking, previousPointer)) {
+                    if (__DEBUG_GC_) {
+                        fprintf(stderr, "xixi HeapUtil root found #2 : %p -> %p\n", passedPointer, previousPointer);
+                    }                    
                     func(previousPointer, previousCandidate->handle().cellKind());
+                }
             }
         }
     
@@ -107,8 +118,12 @@ public:
         
         auto tryPointer = [&] (void* pointer) {
             bool isLive = candidate->handle().isLiveCell(markingVersion, newlyAllocatedVersion, isMarking, pointer);
-            if (isLive)
+            if (isLive) {
+                if (__DEBUG_GC_) {
+                    fprintf(stderr, "xixi HeapUtil root found #3 : %p -> %p\n", passedPointer, pointer);
+                }
                 func(pointer, cellKind);
+            }
             // Only return early if we are marking a non-butterfly, since butterflies without indexed properties could point past the end of their allocation.
             // If we do, and there is another live butterfly immediately following the first, we will mark the latter one here but we still need to
             // mark the former.

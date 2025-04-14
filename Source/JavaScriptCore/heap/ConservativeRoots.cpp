@@ -35,6 +35,9 @@
 #include "MarkedBlockInlines.h"
 #include <wtf/OSAllocator.h>
 
+#include <atomic>
+extern std::atomic_bool __DEBUG_GC_;
+
 namespace JSC {
 
 ConservativeRoots::ConservativeRoots(Heap& heap)
@@ -97,8 +100,13 @@ void ConservativeRoots::genericAddSpan(void* begin, void* end, MarkHook& markHoo
     TinyBloomFilter<uintptr_t> filter = m_heap.objectSpace().blocks().filter(); // Make a local copy of filter to show the compiler it won't alias, and can be register-allocated.
     HeapVersion markingVersion = m_heap.objectSpace().markingVersion();
     HeapVersion newlyAllocatedVersion = m_heap.objectSpace().newlyAllocatedVersion();
-    for (char** it = static_cast<char**>(begin); it != static_cast<char**>(end); ++it)
+    for (char** it = static_cast<char**>(begin); it != static_cast<char**>(end); ++it) {
+        size_t before = m_size;
         genericAddPointer(*it, markingVersion, newlyAllocatedVersion, filter, markHook);
+        if (__DEBUG_GC_ && m_size > before) {
+            fprintf(stderr, "xixi -----> that recent root %p was from stack addr: %p\n", m_roots[m_size-1], it);
+        }
+    }
 }
 
 class DummyMarkHook {

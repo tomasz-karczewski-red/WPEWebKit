@@ -28,6 +28,47 @@
 #include <wtf/PageBlock.h>
 #include <wtf/StdLibExtras.h>
 #include <unistd.h>
+
+#include <mutex>
+
+#include <atomic>
+std::atomic_bool __DEBUG_GC_ { false };
+static std::mutex moot;
+#if 0
+
+
+// struct _stack_break {
+//     void *addr;
+//     const char *file;
+//     int line;
+// };
+
+
+// struct _Comparator {
+//     bool operator()(const _stack_break& a, const _stack_break& b) const {
+//         return a.addr > b.addr;
+//     }
+// };
+
+// std::set<_stack_break, _Comparator> __stack_breakpoints;
+
+// static std::mutex _lololo_;
+
+// void add_stack_break(void *ptr, const char *file, int line) {
+//     std::unique_lock<std::mutex> lock(_lololo_);
+//     __stack_breakpoints.insert({ptr, file, line});
+// }
+#endif
+
+#include <set>
+#include <wtf/RunLoop.h>
+
+
+extern std::set<_stack_break, _Comparator> __stack_breakpoints;
+
+void add_stack_break(void *ptr, const char *file, int line);
+void remove_stack_break(void *ptr);
+
 namespace JSC {
 
 MachineThreads::MachineThreads()
@@ -35,17 +76,52 @@ MachineThreads::MachineThreads()
 {
 }
 
+
 SUPPRESS_ASAN
 void MachineThreads::gatherFromCurrentThread(ConservativeRoots& conservativeRoots, JITStubRoutineSet& jitStubRoutines, CodeBlockSet& codeBlocks, CurrentThreadState& currentThreadState)
 {
+    int pid = static_cast<int>(getpid()), tid = static_cast<int>(gettid());
+    add_stack_break(&pid, "false false false", -1);
+    remove_stack_break(&pid);
+
+    fprintf(stderr, "xexe <%d:%d> ------------ gatherFromCurrentThread start ------------\n", pid, tid);
     if (currentThreadState.registerState) {
+        size_t before = conservativeRoots.size();
         void* registersBegin = currentThreadState.registerState;
         void* registersEnd = reinterpret_cast<void*>(roundUpToMultipleOf<sizeof(void*)>(reinterpret_cast<uintptr_t>(currentThreadState.registerState + 1)));
         conservativeRoots.add(registersBegin, registersEnd, jitStubRoutines, codeBlocks);
+        fprintf(stderr, "xexe <%d:%d> gatherFromCurrentThread: scanned registers, new roots: %zu \n", pid, tid,
+                    conservativeRoots.size() - before);
     }
-    static void *oldenv = environ;
-    fprintf(stderr, "xexe <%d:%d> gatherFromCurrentThread: scan top: %p origin: %p ; oldenv: %p\n", static_cast<int>(getpid()), static_cast<int>(gettid()), currentThreadState.stackTop, currentThreadState.stackOrigin, oldenv);
-    conservativeRoots.add(currentThreadState.stackTop, currentThreadState.stackOrigin, jitStubRoutines, codeBlocks);
+    // static void *oldenv = environ;
+    // fprintf(stderr, "xexe <%d:%d> gatherFromCurrentThread: scan top: %p origin: %p ; oldenv: %p\n", static_cast<int>(getpid()), static_cast<int>(gettid()), currentThreadState.stackTop, currentThreadState.stackOrigin, oldenv);
+    void *prevaddr = currentThreadState.stackOrigin;
+    const char *prevname = "ORIGIN";
+    int prevline = 0;
+
+    {
+        std::lock_guard<std::mutex> grd { moot } ;
+    __DEBUG_GC_ = true;
+    for (auto it = __stack_breakpoints.begin(); it != __stack_breakpoints.end(); ++it) {
+        if (it->addr <= currentThreadState.stackTop) break;
+        if (it->addr < prevaddr) {
+            // check prevaddr .. it->addr
+            size_t before = conservativeRoots.size();
+            conservativeRoots.add(it->addr, prevaddr, jitStubRoutines, codeBlocks);
+            fprintf(stderr, "xexe <%d:%d> gatherFromCurrentThread: scanned %p(%s:%d) -> %p(%s:%d) new roots: %zu \n", pid, tid,
+                                    it->addr, it->file, it->line,  prevaddr, prevname, prevline, conservativeRoots.size() - before);
+            prevaddr = it->addr;
+            prevname = it->file;
+            prevline = it->line;
+        }
+    }
+    __DEBUG_GC_ = false;
+    }
+    
+    size_t before = conservativeRoots.size();
+    conservativeRoots.add(currentThreadState.stackTop, prevaddr, jitStubRoutines, codeBlocks);
+    fprintf(stderr, "xexe <%d:%d> gatherFromCurrentThread: scanned %p(%s:%d) -> %p(%s:%d) new roots: %zu \n", pid, tid,
+                currentThreadState.stackTop, "TOP", 0,  prevaddr, prevname, prevline, conservativeRoots.size() - before);
 }
 
 static inline int osRedZoneAdjustment()

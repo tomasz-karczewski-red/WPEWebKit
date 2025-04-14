@@ -29,6 +29,9 @@
 #include "Microtasks.h"
 #include "ScriptExecutionContext.h"
 
+extern void add_stack_break(void *ptr, const char *file, int line);
+void remove_stack_break(void *ptr);
+
 namespace WebCore {
 
 void EventLoop::queueTask(std::unique_ptr<EventLoopTask>&& task)
@@ -106,6 +109,14 @@ void EventLoop::run()
     m_isScheduledToRun = false;
     bool didPerformMicrotaskCheckpoint = false;
 
+    int what {0};
+    add_stack_break(&what, "EventLoop.cpp", __LINE__);
+    struct _remover {
+        void *ptr;
+        _remover(void *ptr) : ptr(ptr) {}
+        ~_remover() { remove_stack_break(ptr);}
+    } ___remover { &what };
+
     if (!m_tasks.isEmpty()) {
         auto tasks = std::exchange(m_tasks, { });
         m_groupsWithSuspendedTasks.clear();
@@ -133,6 +144,7 @@ void EventLoop::run()
     // FIXME: Remove this once everything is integrated with the event loop.
     if (!didPerformMicrotaskCheckpoint)
         microtaskQueue().performMicrotaskCheckpoint();
+
 }
 
 void EventLoop::clearAllTasks()
